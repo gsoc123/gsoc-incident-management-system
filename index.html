@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GSOC Incident Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#11161c;--panel:#1b232c;--panel-2:#232d38;--line:#33414f;--line-soft:#2a3540;
+    --text:#dfe6ec;--text-dim:#9aa7b4;--text-faint:#6b7884;
+    --paper:#f4f1e8;--paper-ink:#26211a;--paper-line:#d8d0bf;
+    --amber:#d9a531;--cat1:#c2362f;--cat2:#d97a28;--cat3:#d8b13a;--near:#3d83a3;--fyi:#6b7884;
+    --focus:#e0b34a;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --disp:'Barlow Condensed',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--ink);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+  .classbar{
+    background:repeating-linear-gradient(45deg,#1f2730,#1f2730 12px,#242d37 12px,#242d37 24px);
+    border-bottom:1px solid var(--line);text-align:center;font-family:var(--mono);
+    font-size:11px;letter-spacing:.28em;color:var(--text-faint);padding:6px 10px;text-transform:uppercase;
+  }
+  header.app{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:18px 26px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#19212a,#161d25)}
+  .brand{display:flex;align-items:center;gap:14px}
+  .sigil{width:42px;height:42px;flex:none;border-radius:3px;border:1px solid var(--line);background:var(--panel-2);
+    display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:20px;color:var(--amber);letter-spacing:.04em}
+  .brand h1{font-family:var(--disp);font-weight:700;font-size:25px;letter-spacing:.06em;margin:0;line-height:1;text-transform:uppercase;color:var(--text)}
+  .brand .sub{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--text-faint);text-transform:uppercase;margin-top:5px}
+  .reset-btn{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);
+    background:transparent;border:1px solid var(--line);padding:9px 14px;border-radius:3px;cursor:pointer;transition:.15s}
+  .reset-btn:hover{border-color:var(--amber);color:var(--amber)}
+  .logout-btn{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);
+    background:transparent;border:1px solid var(--line);padding:9px 14px;border-radius:3px;cursor:pointer;transition:.15s}
+  .logout-btn:hover{border-color:var(--cat1);color:#f0a59f}
+  .session{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .session .who-on{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase}
+  .session .who-on b{color:var(--amber);font-weight:600}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:0;align-items:start}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  .console{padding:24px 26px 40px;border-right:1px solid var(--line);min-height:100%}
+  @media(max-width:980px){.console{border-right:none;border-bottom:1px solid var(--line)}}
+  .output{padding:24px 26px 60px;background:#141a21}
+
+  fieldset{border:1px solid var(--line-soft);border-radius:5px;margin:0 0 18px;padding:16px 16px 18px;background:var(--panel)}
+  legend{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);padding:0 8px;margin-left:-4px}
+  .row{display:grid;gap:14px;margin-bottom:14px}
+  .row:last-child{margin-bottom:0}
+  .row.two{grid-template-columns:1fr 1fr}
+  .row.three{grid-template-columns:1fr 1fr 1fr}
+  .row.four{grid-template-columns:1fr 1fr 1fr 1fr}
+  .row.four{grid-template-columns:.8fr 1.3fr 1fr 1fr}
+  @media(max-width:560px){.row.two,.row.three,.row.four{grid-template-columns:1fr}}
+
+  label.fld{display:flex;flex-direction:column;gap:6px}
+  .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim)}
+  input[type=text],input[type=tel],input[type=password],input[type=number],input[type=datetime-local],textarea,select{
+    background:var(--ink);border:1px solid var(--line);color:var(--text);font-family:var(--body);font-size:14px;
+    padding:9px 11px;border-radius:3px;width:100%;transition:border-color .15s,box-shadow .15s}
+  input::placeholder,textarea::placeholder{color:var(--text-faint)}
+  textarea{resize:vertical;min-height:70px;line-height:1.5}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px rgba(224,179,74,.16)}
+  select{appearance:none;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--text-dim) 50%),linear-gradient(135deg,var(--text-dim) 50%,transparent 50%);
+    background-position:calc(100% - 16px) 17px,calc(100% - 11px) 17px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px}
+
+  .toggle{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:3px;overflow:hidden;position:relative}
+  .toggle input{position:absolute;opacity:0;pointer-events:none}
+  .toggle label{text-align:center;padding:10px 6px;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--text-dim);background:var(--ink);transition:.15s;user-select:none}
+  .toggle label:first-of-type{border-right:1px solid var(--line)}
+  .toggle input:checked + label{background:rgba(217,165,49,.18);color:var(--amber)}
+  #occYes:checked + label{background:rgba(194,54,47,.22);color:#f0a59f}
+  #occNo:checked + label{background:rgba(61,131,163,.22);color:#a9d4e6}
+
+  .checks{display:flex;flex-direction:column;gap:9px}
+  .chk{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13.5px;color:var(--text)}
+  .chk input{margin-top:2px;width:16px;height:16px;accent-color:var(--amber);flex:none}
+  .chk .hint{display:block;color:var(--text-faint);font-size:11.5px;margin-top:1px}
+
+  .placeholder-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--amber);
+    border:1px solid rgba(217,165,49,.4);border-radius:2px;padding:1px 5px;text-transform:uppercase;margin-left:6px}
+  .subblock{border:1px dashed var(--line);border-radius:4px;padding:14px;margin-top:2px;background:rgba(0,0,0,.14)}
+  .subblock-title{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin-bottom:12px}
+
+  /* involved personnel rows */
+  .person-row{display:grid;grid-template-columns:.7fr 1.3fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center}
+  @media(max-width:620px){.person-row{grid-template-columns:1fr 1fr;}.person-row .rm{grid-column:1/-1}}
+  .person-row input{font-size:13px;padding:8px 9px}
+  .who-row{display:grid;grid-template-columns:1fr .8fr 1.2fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center}
+  .who-row input,.who-row select{font-size:13px;padding:8px 9px}
+  .who-row input:disabled{opacity:.45}
+  @media(max-width:620px){.who-row{grid-template-columns:1fr 1fr;}.who-row .rm{grid-column:1/-1}}
+  .rm{background:transparent;border:1px solid var(--line);color:var(--text-faint);border-radius:3px;
+    cursor:pointer;font-family:var(--mono);font-size:14px;line-height:1;padding:8px 11px;transition:.15s}
+  .rm:hover{border-color:var(--cat1);color:#f0a59f}
+  .add-btn{margin-top:4px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--amber);background:transparent;border:1px dashed rgba(217,165,49,.5);border-radius:3px;padding:9px 14px;cursor:pointer;transition:.15s}
+  .add-btn:hover{background:rgba(217,165,49,.08)}
+
+  /* verdict */
+  .verdict{border-radius:6px;border:1px solid var(--line);background:var(--panel-2);overflow:hidden;margin-bottom:22px}
+  .verdict-bar{height:6px;background:var(--fyi);transition:background .25s}
+  .verdict-body{padding:18px 20px}
+  .verdict-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .verdict-eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-faint)}
+  .verdict-cat{font-family:var(--disp);font-weight:700;font-size:40px;line-height:.95;letter-spacing:.02em;text-transform:uppercase;color:var(--text)}
+  .sev-chip{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
+  .verdict-rationale{margin-top:14px;font-size:13px;color:var(--text-dim);border-top:1px solid var(--line-soft);padding-top:13px}
+  .verdict-rationale b{color:var(--text)}
+  .timeline-note{margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.04em}
+  .override{margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .override .lab{margin:0}
+  .override select{width:auto;min-width:150px;padding-top:7px;padding-bottom:7px}
+
+  .doc-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
+  .doc-head h2{font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin:0}
+  .copy-btn{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;
+    background:var(--amber);color:#1a1305;border:none;padding:9px 16px;border-radius:3px;transition:.15s;font-weight:600}
+  .copy-btn:hover{filter:brightness(1.08)}
+  .copy-btn.done{background:#5a8a4a;color:#0d1a09}
+
+  .out-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .viewtog{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .vbtn{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    background:transparent;color:var(--text-dim);border:none;padding:9px 13px;cursor:pointer;transition:.15s}
+  .vbtn + .vbtn{border-left:1px solid var(--line)}
+  .vbtn.on{background:rgba(217,165,49,.18);color:var(--amber)}
+
+  .paper.prose{font-family:var(--body);font-size:13.5px;line-height:1.72;color:var(--paper-ink)}
+  .paper.prose .pclass{font-family:var(--mono)}
+  .paper.prose #nBody p{margin:0 0 13px}
+  .paper.prose #nBody p:last-child{margin-bottom:0}
+  .paper.prose #nBody p.lead{font-weight:600}
+  .paper.prose #irHeading{font-family:var(--body);font-weight:700;font-size:15px;line-height:1.4;color:var(--paper-ink);
+    margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--paper-line)}
+  .paper.prose #nBody p{margin:0 0 12px}
+  .cat-analysis{margin-top:16px;border-top:1px dashed var(--paper-line);padding-top:12px;
+    font-family:var(--body);font-size:12.5px;line-height:1.6;color:var(--paper-ink)}
+  .cat-analysis .ca-tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8a7f6c;display:block;margin-bottom:5px}
+  .cat-analysis b{font-weight:700}
+
+  .refbox{margin-top:14px;border:1px solid var(--line);border-radius:6px;background:var(--panel);overflow:hidden}
+  .ref-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:transparent;border:none;cursor:pointer;padding:13px 16px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber)}
+  .ref-toggle:hover{background:var(--panel-2)}
+  .ref-body{display:none;padding:0 18px 18px;border-top:1px solid var(--line-soft)}
+  .ref-body.on{display:block}
+  .ref-meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--text-faint);margin:12px 0 8px}
+  .ref-meta b{color:var(--text-dim)}
+  .ref-text{font-size:12.5px;line-height:1.6;color:var(--text-dim);white-space:pre-wrap;
+    background:var(--ink);border:1px solid var(--line-soft);border-radius:4px;padding:12px 14px;max-height:280px;overflow:auto}
+  .ref-empty{font-family:var(--mono);font-size:11px;color:var(--text-faint);padding:12px 0}
+  .opt{color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0}
+  textarea.tall{min-height:130px}
+  .seclabel{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line-soft)}
+  .ir-sec{font-weight:700;margin:16px 0 5px}
+  .ir-sec:first-child{margin-top:6px}
+  .ir-secn{color:var(--amber-ink,#9a7320)}
+  .narrativePaper .ir-sub,.prose .ir-sub{list-style:none;margin:4px 0 0;padding:0}
+  .prose .ir-sub li{position:relative;padding-left:26px;margin:3px 0;line-height:1.55}
+  .prose .ir-sub li .sl{position:absolute;left:4px;color:#6b7280}
+
+  .paper{background:var(--paper);color:var(--paper-ink);border-radius:4px;padding:24px 26px 28px;
+    font-family:var(--mono);font-size:12.5px;line-height:1.65;box-shadow:0 10px 30px -12px rgba(0,0,0,.6)}
+  .paper.editing{outline:2px dashed var(--amber,#d9a531);outline-offset:3px}
+  .paper.editing #irHeading,.paper.editing #nBody{background:rgba(217,165,49,.08);border-radius:3px}
+  .paper .pclass{text-align:center;font-weight:600;letter-spacing:.26em;font-size:11px;border-bottom:2px solid var(--paper-ink);padding-bottom:8px;margin-bottom:14px}
+  .paper .pmeta{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;margin-bottom:14px}
+  @media(max-width:560px){.paper .pmeta{grid-template-columns:1fr}}
+  .paper .pmeta span{display:block}
+  .paper .pmeta .k{color:#8a7f6c}
+  .paper .field{margin-bottom:11px}
+  .paper .field .w{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.12em;color:var(--paper-ink);
+    border-bottom:1px solid var(--paper-line);padding-bottom:2px;margin-bottom:4px;display:flex;justify-content:space-between}
+  .paper .field .w small{font-family:var(--mono);font-weight:400;font-size:9.5px;letter-spacing:.08em;color:#8a7f6c}
+  .paper .field .v{white-space:pre-wrap;word-break:break-word}
+  .paper .field .v.empty{color:#b0a48d;font-style:italic}
+  .paper .pfoot{margin-top:16px;border-top:1px dashed var(--paper-line);padding-top:10px;font-size:11px;color:#6f6451;white-space:pre-wrap}
+
+  .advisory{margin-top:20px;border:1px solid var(--line-soft);border-left:3px solid var(--amber);border-radius:4px;background:var(--panel);padding:13px 15px;font-size:12px;color:var(--text-dim)}
+  .advisory b{color:var(--text);font-family:var(--disp);letter-spacing:.06em;font-size:13px}
+  .opsec{margin-top:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--cat1);
+    border:1px solid rgba(194,54,47,.35);border-radius:3px;padding:9px 12px;background:rgba(194,54,47,.07);line-height:1.55}
+
+  .hidden{display:none !important}
+
+  .login-screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+    background:radial-gradient(1200px 600px at 50% -10%,rgba(217,165,49,.06),transparent 60%),var(--ink)}
+  .login-main{flex:1;display:grid;place-items:center;padding:28px 18px}
+  .login-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:7px;box-shadow:0 24px 60px -24px rgba(0,0,0,.7);overflow:hidden}
+  .login-top{background:linear-gradient(180deg,#19212a,#161d25);border-bottom:1px solid var(--line);padding:24px 26px 20px;text-align:center}
+  .login-top .sigil{margin:0 auto 12px}
+  .login-top h1{font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:.07em;text-transform:uppercase;margin:0;color:var(--text)}
+  .login-top .sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--text-faint);text-transform:uppercase;margin-top:6px}
+  .login-form{padding:22px 26px 8px;display:flex;flex-direction:column;gap:14px}
+  .login-form .fld{display:flex;flex-direction:column;gap:6px}
+  .signin-btn{margin-top:4px;width:100%;font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--amber);color:#1a1305;border:none;padding:12px;border-radius:4px;cursor:pointer;transition:.15s}
+  .signin-btn:hover{filter:brightness(1.08)}
+  .login-err{min-height:16px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--cat1);text-align:center}
+  .login-foot{padding:6px 26px 22px;text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--text-faint);line-height:1.6}
+
+  /* ---- tab nav ---- */
+  .tabnav{display:flex;gap:0;border-bottom:1px solid var(--line);background:#161d25;padding:0 18px;overflow-x:auto}
+  .tabnav button{font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:.08em;text-transform:uppercase;
+    background:transparent;border:none;color:var(--text-faint);padding:15px 20px 13px;cursor:pointer;
+    border-bottom:3px solid transparent;white-space:nowrap;transition:.15s}
+  .tabnav button:hover{color:var(--text-dim)}
+  .tabnav button.on{color:var(--amber);border-bottom-color:var(--amber)}
+  .tabpanel{display:none}
+  .tabpanel.on{display:block}
+
+  /* ---- dashboard ---- */
+  .dash{padding:26px}
+  .dash-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+  .dash-head h2{font-family:var(--disp);font-weight:700;font-size:26px;letter-spacing:.05em;text-transform:uppercase;margin:0;color:var(--text)}
+  .dash-head .sub{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--text-faint);text-transform:uppercase;margin-top:4px}
+  .pills{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .pills button{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:transparent;
+    color:var(--text-dim);border:none;padding:9px 15px;cursor:pointer;transition:.15s}
+  .pills button + button{border-left:1px solid var(--line)}
+  .pills button.on{background:rgba(217,165,49,.18);color:var(--amber)}
+
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+  .stat-row.nine{grid-template-columns:repeat(9,1fr);gap:10px}
+  @media(max-width:1100px){.stat-row.nine{grid-template-columns:repeat(5,1fr)}}
+  @media(max-width:760px){.stat-row{grid-template-columns:repeat(2,1fr)}.stat-row.nine{grid-template-columns:repeat(3,1fr)}}
+  .stat{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:16px 18px}
+  .stat .n{font-family:var(--disp);font-weight:700;font-size:40px;line-height:1;color:var(--text)}
+  .stat .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-top:7px}
+  .stat.alert .n{color:var(--cat1)}
+  .stat.open .n{color:var(--amber)}
+
+  .panels{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;align-items:start}
+  .dash-controls{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  @media(max-width:680px){.dash-controls{align-items:flex-start}}
+  .panels.one{grid-template-columns:1fr}
+  @media(max-width:900px){.panels{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:18px 20px 20px}
+  .card h3{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin:0 0 16px}
+
+  /* horizontal bars (by nature) */
+  .hbar{display:grid;grid-template-columns:130px 1fr 34px;gap:10px;align-items:center;margin-bottom:9px}
+  .hbar .hl{font-size:12px;color:var(--text-dim);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hbar .ht{height:18px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
+  .hbar .hf{height:100%;background:linear-gradient(90deg,var(--amber),#c08e22);border-radius:2px;min-width:2px;transition:width .4s}
+  .hbar .hn{font-family:var(--mono);font-size:12px;color:var(--text);text-align:right}
+  .hbar.clickable{cursor:pointer}
+  .hbar.clickable .hl{cursor:pointer}
+  .hbar.clickable .hl::before{content:"▸ ";color:var(--amber);font-size:10px}
+  .hbar.clickable.open .hl::before{content:"▾ "}
+  .sub-break{margin:2px 0 10px 0;padding:8px 10px;background:rgba(255,255,255,.03);border-left:2px solid var(--amber);border-radius:0 3px 3px 0}
+  .sub-break .sbrow{display:grid;grid-template-columns:1fr 28px;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--text-dim);padding:2px 0}
+  .sub-break .sbrow .sbn{text-align:right;color:var(--text)}
+  .sub-break .sb-empty{font-family:var(--mono);font-size:11px;color:var(--text-faint)}
+  .trend-item{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+  .trend-item:last-child{border-bottom:none}
+  .trend-item .ti-ar{font-family:var(--mono);font-weight:700;font-size:13px;line-height:1.5}
+  .trend-item .ti-ar.up{color:#e0683a}.trend-item .ti-ar.dn{color:#5a9f76}.trend-item .ti-ar.fl{color:var(--text-faint)}
+  .trend-item .ti-tx{font-size:12.5px;color:var(--text-dim);line-height:1.5}
+  .trend-item .ti-tx b{color:var(--text)}
+  .empty-note{font-family:var(--mono);font-size:11px;color:var(--text-faint);letter-spacing:.04em;padding:10px 0}
+
+  /* column chart (over time) */
+  .cols{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:8px}
+  .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;min-width:0}
+  .col .cbar{width:70%;max-width:34px;background:linear-gradient(180deg,var(--near),#2f6885);border-radius:2px 2px 0 0;min-height:2px;transition:height .4s}
+  .col .clab{font-family:var(--mono);font-size:9px;letter-spacing:.02em;color:var(--text-faint);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:100%}
+  .col .cval{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+
+  /* severity split */
+  .sevbar{display:flex;height:26px;border-radius:3px;overflow:hidden;border:1px solid var(--line);margin-bottom:14px}
+  .sevbar span{display:block}
+  .sevleg{display:flex;flex-direction:column;gap:8px}
+  .sevleg .li{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-dim)}
+  .sevleg .sw{width:12px;height:12px;border-radius:2px;flex:none}
+  .sevleg .lc{margin-left:auto;font-family:var(--mono);color:var(--text)}
+
+  /* ---- manage ---- */
+  .manage{padding:26px}
+  .manage-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  .manage-head h2{font-family:var(--disp);font-weight:700;font-size:26px;letter-spacing:.05em;text-transform:uppercase;margin:0}
+  .mfilter{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;align-items:stretch}
+  .mfilters{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  @media(max-width:680px){.mfilters{align-items:flex-start}.mfilter{flex-wrap:wrap}}
+  .mfilter .mf-lab{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);display:flex;align-items:center;padding:0 11px;background:rgba(255,255,255,.03);border-right:1px solid var(--line)}
+  .mfilter-date{align-items:center;gap:8px;padding-right:8px}
+  .mfilter-date .mf-date{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding-left:4px}
+  .mfilter-date .mf-date input{font-size:11px;padding:6px 8px;width:auto}
+  .mfilter-date #mDateClear{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:none;border-left:1px solid var(--line);color:var(--text-dim);padding:9px 12px;cursor:pointer}
+  .mfilter-date #mDateClear:hover{color:var(--amber)}
+  .mfilter button{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--text-dim);border:none;padding:9px 13px;cursor:pointer}
+  .mfilter button + button{border-left:1px solid var(--line)}
+  .mfilter button.on{background:rgba(217,165,49,.18);color:var(--amber)}
+
+  .inc{border:1px solid var(--line);border-radius:6px;background:var(--panel);margin-bottom:11px;overflow:hidden}
+  .inc-row{display:grid;grid-template-columns:96px 1fr auto auto;gap:14px;align-items:center;padding:14px 16px;cursor:pointer}
+  @media(max-width:680px){.inc-row{grid-template-columns:1fr auto}}
+  .inc-row:hover{background:var(--panel-2)}
+  .inc .dtg{font-family:var(--mono);font-size:11px;color:var(--text-faint)}
+  .inc .ttl{color:var(--text);font-size:14px}
+  .inc .ttl small{display:block;color:var(--text-faint);font-size:11.5px;margin-top:2px}
+  .cat-chip{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:4px 9px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
+  .stat-chip{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase}
+  @media(max-width:680px){.inc .dtg,.stat-chip{display:none}}
+  .inc-detail{display:none;border-top:1px solid var(--line);padding:18px 18px 20px;background:#161d25}
+  .inc-detail.on{display:block}
+  .inc-detail h4{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin:0 0 8px}
+  .inc-detail .writeup{font-size:13px;line-height:1.6;color:var(--text-dim);margin-bottom:18px;white-space:pre-wrap}
+  .wu-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .mini-edit,.mini-save,.mini-cancel{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;border-radius:3px;padding:4px 11px;cursor:pointer;background:transparent}
+  .mini-edit{border:1px dashed rgba(217,165,49,.5);color:var(--amber)}
+  .mini-edit:hover{background:rgba(217,165,49,.1)}
+  .mini-save{border:1px solid var(--amber);background:var(--amber);color:#1a1a1a;font-weight:600}
+  .mini-cancel{border:1px solid var(--line);color:var(--text-dim)}
+  .wu-edit{width:100%;min-height:80px;margin:8px 0 0;font-family:var(--mono);font-size:12.5px;line-height:1.55;resize:vertical}
+  .edit-bar{display:flex;gap:8px;margin:8px 0 18px}
+  .rec-list{list-style:none;margin:0 0 18px;padding:0}
+  .rec-list li{font-size:13px;color:var(--text-dim);padding:6px 0 6px 18px;position:relative}
+  .rec-list li:before{content:"▸";position:absolute;left:0;color:var(--amber)}
+  .fu{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;color:var(--text)}
+  .fu input{width:16px;height:16px;accent-color:#5a8a4a;flex:none}
+  .fu.done span{text-decoration:line-through;color:var(--text-faint)}
+  .fu-add{display:flex;gap:8px;margin-top:8px}
+  .upd{border-left:2px solid var(--amber);background:rgba(255,255,255,.03);border-radius:0 4px 4px 0;padding:8px 12px;margin-bottom:8px}
+  .upd-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:3px}
+  .upd-n{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  .upd-ts{font-family:var(--mono);font-size:10.5px;color:var(--text-faint)}
+  .upd-tx{font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap}
+  .fu-add input{flex:1}
+  .fu-add button{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:1px dashed rgba(217,165,49,.5);color:var(--amber);border-radius:3px;padding:0 14px;cursor:pointer}
+  .inc-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .inc-meta .lab{margin:0}
+  .inc-meta select{width:auto;padding:7px 28px 7px 11px}
+  .inc-meta .del-btn{margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:transparent;border:1px solid rgba(194,54,47,.5);color:#d4756e;border-radius:3px;padding:8px 14px;cursor:pointer}
+  .inc-meta .del-btn:hover{background:rgba(194,54,47,.12)}
+  .inc-meta .del-btn.confirm{background:#c2362f;border-color:#c2362f;color:#fff}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#2a3a26;border:1px solid #5a8a4a;color:#d8efce;
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;padding:12px 20px;border-radius:5px;z-index:60;opacity:0;transition:.3s}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+  .submit-bar{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:6px}
+  .submit-btn{font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:.1em;text-transform:uppercase;
+    background:#5a8a4a;color:#0d1a09;border:none;padding:13px 26px;border-radius:4px;cursor:pointer;transition:.15s}
+  .submit-btn:hover{filter:brightness(1.08)}
+</style>
+</head>
+<body>
+  <!-- ===== SIGN-IN ===== -->
+  <div class="login-screen" id="loginScreen">
+    <div class="classbar">// UNCLASSIFIED — TRAINING / DEMONSTRATION USE — DO NOT ENTER LIVE CLASSIFIED OR PII //</div>
+    <div class="login-main">
+      <div class="login-card">
+        <div class="login-top">
+          <div class="sigil">GS</div>
+          <h1>GSOC Incident Management System</h1>
+          <div class="sub">Restricted access</div>
+        </div>
+        <div class="login-form">
+          <label class="fld"><span class="lab">Username / service number</span>
+            <input type="text" id="loginUser" autocomplete="off" placeholder="Enter identifier"></label>
+          <label class="fld"><span class="lab">Password</span>
+            <input type="password" id="loginPass" autocomplete="off" placeholder="Enter password"></label>
+          <button class="signin-btn" id="signinBtn">Sign in</button>
+          <div class="login-err" id="loginErr"></div>
+        </div>
+        <div class="login-foot">Accepts any non-empty credentials.<br>No real authentication is performed yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== APP ===== -->
+  <div id="appShell" class="hidden">
+  <div class="classbar">// UNCLASSIFIED — TRAINING / DEMONSTRATION USE — DO NOT ENTER LIVE CLASSIFIED OR PII //</div>
+  <header class="app">
+    <div class="brand">
+      <div class="sigil">GS</div>
+      <div><h1>GSOC Incident Management System</h1>
+        <div class="sub">Classification&nbsp;&amp;&nbsp;Drafting&nbsp;Aid</div></div>
+    </div>
+    <div class="session">
+      <span class="who-on">Signed in: <b id="sessionUser">—</b></span>
+      <button class="reset-btn" id="resetBtn">Clear form</button>
+      <button class="logout-btn" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <nav class="tabnav">
+    <button class="on" id="navOverview" type="button">Overview</button>
+    <button id="navFile" type="button">File Incident</button>
+    <button id="navManage" type="button">Incident Management</button>
+  </nav>
+
+  <!-- ===== OVERVIEW ===== -->
+  <div class="tabpanel on" id="tab-overview">
+    <div class="dash">
+      <div class="dash-head">
+        <div>
+          <h2>Incident Overview</h2>
+          <div class="sub" id="dashRange">Past 30 days</div>
+        </div>
+        <div class="dash-controls">
+          <div class="pills" id="rangePills">
+            <button data-r="7" type="button">Past week</button>
+            <button data-r="30" class="on" type="button">Past month</button>
+            <button data-r="365" type="button">Past year</button>
+          </div>
+          <div class="mfilter mfilter-date" id="dashDateFilter">
+            <span class="mf-lab">Custom</span>
+            <label class="mf-date">From <input type="datetime-local" id="dashFrom"></label>
+            <label class="mf-date">To <input type="datetime-local" id="dashTo"></label>
+            <button type="button" id="dashDateClear">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-row nine">
+        <div class="stat"><div class="n" id="stTotal">0</div><div class="l">Total incidents</div></div>
+        <div class="stat"><div class="n" id="stCat1">0</div><div class="l">CAT 1</div></div>
+        <div class="stat"><div class="n" id="stCat2">0</div><div class="l">CAT 2</div></div>
+        <div class="stat"><div class="n" id="stCat3">0</div><div class="l">CAT 3</div></div>
+        <div class="stat"><div class="n" id="stCat4">0</div><div class="l">CAT 4</div></div>
+        <div class="stat"><div class="n" id="stFyi">0</div><div class="l">FYI</div></div>
+        <div class="stat"><div class="n" id="stNear">0</div><div class="l">Near Miss</div></div>
+        <div class="stat open"><div class="n" id="stOpen">0</div><div class="l">Total open incidents</div></div>
+        <div class="stat"><div class="n" id="stClosed">0</div><div class="l">Total closed incidents</div></div>
+      </div>
+
+      <div class="panels one">
+        <div class="card">
+          <h3>Incidents by category</h3>
+          <div id="catBars"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <h3>Trend watch <span class="opt" style="font-weight:400">— categories to look out for</span></h3>
+        <div id="trendBox"></div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <h3>Incidents over time</h3>
+        <div class="cols" id="timeCols"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FILE INCIDENT ===== -->
+  <div class="tabpanel" id="tab-file">
+  <div class="grid">
+    <!-- ============ CONSOLE ============ -->
+    <section class="console">
+
+      <fieldset>
+        <legend>1 · Incident — Reference</legend>
+        <div class="row two">
+          <label class="fld"><span class="lab">Serial / primary key <span class="opt">— the number; year + category auto-added</span></span><input type="text" id="caseNo" placeholder="e.g. 1234"></label>
+          <label class="fld"><span class="lab">Date / time reported to GSOC</span><input type="datetime-local" id="reportedDtg"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2 · Reporting Personnel</legend>
+        <div class="row four">
+          <label class="fld"><span class="lab">Rank</span><input type="text" id="rpRank" placeholder="e.g. SSG"></label>
+          <label class="fld"><span class="lab">Name</span><input type="text" id="rpName" placeholder="Name"></label>
+          <label class="fld"><span class="lab">Unit</span><input type="text" id="rpUnit" placeholder="Unit / sub-unit"></label>
+          <label class="fld"><span class="lab">Contact no.</span><input type="tel" id="rpContact" placeholder="Phone / radio"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>3 · Categorisation — SAF Incident Categories</legend>
+        <div class="row two">
+          <label class="fld"><span class="lab">Incident type</span>
+            <select id="nature">
+              <option value="">— Select —</option>
+              <optgroup label="Personnel-related">
+                <option>Death</option>
+                <option>Hospitalisation</option>
+                <option>Personnel missing</option>
+                <option>AWOL (absent without leave)</option>
+                <option>Escape from custody</option>
+                <option>Attempted suicide / self-harm / overdose</option>
+                <option>Heli-casevac activation</option>
+                <option>Disciplinary or civil offence</option>
+                <option>Public complaint</option>
+                <option>Contagious disease</option>
+              </optgroup>
+              <optgroup label="IMH / CMC">
+                <option>Referred to IMH / CMC</option>
+                <option>Sought Medical Attention at IMH / CMC</option>
+                <option>Warded at IMH / CMC</option>
+              </optgroup>
+              <optgroup label="Materiel-related">
+                <option>Damage to public / private property</option>
+                <option>Damage to SAF property</option>
+                <option>Loss of SAF property</option>
+                <option>Theft / loss / discovery of ammunition</option>
+                <option>Major power failure</option>
+                <option>Disruption to utilities (water)</option>
+              </optgroup>
+              <optgroup label="Security-related">
+                <option>National security / defence / public-sensitivity</option>
+                <option>CBRE threat</option>
+                <option>Forced entry / intrusion</option>
+                <option>Unauthorised persons in SAF installation</option>
+                <option>Suspicious item / vehicle / bomb threat</option>
+                <option>Breach of security (classified)</option>
+                <option>UAS detection / sighting near camp</option>
+              </optgroup>
+              <optgroup label="C4 / Cyber / Technology / Data">
+                <option>C4 incident</option>
+                <option>Cyber security incident</option>
+                <option>Technology security incident</option>
+                <option>Personal data breach</option>
+              </optgroup>
+              <optgroup label="Others">
+                <option>Outbreak of fire</option>
+                <option>UAV airspace infringement</option>
+                <option>Organisation-reputational incident</option>
+                <option>Non-SAF related incident (CAT 4)</option>
+                <option value="Other">Other (specify)</option>
+              </optgroup>
+            </select></label>
+          <label class="fld"><span class="lab">Outcome</span>
+            <div class="toggle"><input type="radio" name="out" id="outOccurred" checked><label for="outOccurred">Occurred</label><input type="radio" name="out" id="outNear"><label for="outNear">Near miss</label></div></label>
+        </div>
+        <div class="row hidden" id="natureOtherWrap">
+          <label class="fld"><span class="lab">Specify type</span><input type="text" id="natureOther" placeholder="Describe the incident type"></label>
+        </div>
+        <div class="subblock" id="determBlock" style="display:none">
+          <div class="subblock-title">Determining criteria — answer to categorise</div>
+          <div id="determinants"></div>
+        </div>
+        <div class="placeholder-tag" id="determGuide" style="display:none;margin-top:10px"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>5 · Report Content</legend>
+        <div class="row two">
+          <label class="fld"><span class="lab">Title of incident <span class="opt">— personnel details are added automatically</span></span>
+            <input type="text" id="title" placeholder="e.g. Referred to IMH / CMC - Psychological Issues"></label>
+          <label class="fld"><span class="lab">Reporting unit <span class="opt">— who informed GSOC</span></span>
+            <input type="text" id="rptUnit" placeholder="e.g. 3 SIR / BMTC"></label>
+        </div>
+
+        <div class="seclabel">1 · Summary of incident <span class="opt">— the 5W1H; auto-composed into report style</span></div>
+        <div class="row two">
+          <label class="fld"><span class="lab">When <span class="opt">— date / time of incident</span></span>
+            <input type="datetime-local" id="dtg"></label>
+          <label class="fld"><span class="lab">Where <span class="opt">— location of incident</span></span>
+            <input type="text" id="where" placeholder="e.g. Maju Camp"></label>
+        </div>
+
+        <div class="lab" style="margin-bottom:5px">Who <span class="opt">— add one row per person involved</span></div>
+        <div id="whoList"></div>
+        <button class="add-btn" id="addWho" type="button">+ Add personnel</button>
+
+        <div class="row" style="margin-top:10px">
+          <label class="fld"><span class="lab">What <span class="opt">— what happened</span></span>
+            <input type="text" id="what" placeholder="e.g. called the SAF Counselling Hotline to seek help for suicidal thoughts and was referred to IMH"></label>
+        </div>
+        <div class="row two">
+          <label class="fld"><span class="lab">Why <span class="opt">— optional</span></span>
+            <input type="text" id="why" placeholder="e.g. feeling overwhelmed by training"></label>
+          <label class="fld"><span class="lab">How <span class="opt">— optional</span></span>
+            <input type="text" id="how" placeholder="e.g. self-referred via hotline"></label>
+        </div>
+
+        <div class="seclabel">2 · Current status of the incident</div>
+        <div class="row two">
+          <label class="fld"><span class="lab">Current status</span>
+            <input type="text" id="curStatus" placeholder="e.g. Given outpatient treatment with MC till 29 Jun 26"></label>
+          <label class="fld"><span class="lab">NOK informed?</span>
+            <select id="nok"><option value="">N/A</option><option value="Yes">Yes</option><option value="No">No</option></select></label>
+        </div>
+        <div class="lab" style="margin:8px 0 5px">POC / representative accompanying service personnel <span class="opt">— leave all blank for N/A</span></div>
+        <div class="row four">
+          <label class="fld"><span class="lab">Service type</span>
+            <select id="pocSvc" class="svc"><option value="">— Service type —</option><optgroup label="NSF"><option>NSF Enlistee</option><option>NSF Specialist Cadet</option><option>NSF Specialist</option><option>NSF Officer Cadet</option><option>NSF Officer</option></optgroup><optgroup label="Regular"><option>Regular Enlistee</option><option>Regular Specialist Cadet</option><option>Regular Specialist</option><option>Regular Warrant Officer</option><option>Regular Officer Cadet</option><option>Regular Officer</option><option>Military Expert</option></optgroup><optgroup label="NSmen"><option>NS Enlistee</option><option>NS Specialist</option><option>NS Warrant Officer</option><option>NS Officer</option><option>NS Military Expert</option></optgroup><optgroup label="Civilian / External"><option>DXO</option><option>Civilian Contractor</option><option value="Civilian">Civilian (other)</option></optgroup></select></label>
+          <label class="fld"><span class="lab" id="pocRankLab">Rank</span>
+            <input type="text" id="pocRank" placeholder="e.g. 3SG"></label>
+          <label class="fld"><span class="lab">Name</span>
+            <input type="text" id="pocName" placeholder="e.g. Lee"></label>
+          <label class="fld"><span class="lab" id="pocUnitLab">Unit</span>
+            <input type="text" id="pocUnit" placeholder="e.g. 3 SIR"></label>
+        </div>
+        <div class="row">
+          <label class="fld"><span class="lab">Phone number</span>
+            <input type="text" id="pocPhone" placeholder="e.g. 9123 4567"></label>
+        </div>
+
+        <div class="row">
+          <label class="fld"><span class="lab">3 · Account of events — continues "According to the unit, …"</span>
+            <textarea id="account" class="tall" placeholder="e.g. service personnel had been feeling overwhelmed by training demands and reached out for support. SPF was contacted and conveyed the serviceman to IMH via patrol car."></textarea></label>
+        </div>
+
+        <div class="row">
+          <label class="fld"><span class="lab">4 · Special note <span class="opt">— optional</span></span>
+            <textarea id="note" placeholder="Any additional remarks, e.g. late reporting, reputational risk, follow-up board convened."></textarea></label>
+        </div>
+
+        <div class="placeholder-tag" style="margin-top:4px">The system builds the case number [year / category / key], adds the report-type prefix and category citation, and marks blanks as XXXX. GSOC is the final authority on the category.</div>
+      </fieldset>
+    </section>
+
+    <!-- ============ OUTPUT ============ -->
+    <section class="output">
+      <div class="verdict" id="verdict">
+        <div class="verdict-bar" id="vBar"></div>
+        <div class="verdict-body">
+          <div class="verdict-top">
+            <div><div class="verdict-eyebrow">Recommended classification</div><div class="verdict-cat" id="vCat">—</div></div>
+            <div class="sev-chip" id="vChip" style="color:var(--fyi)">Awaiting input</div>
+          </div>
+          <div class="verdict-rationale" id="vWhy">Fill the form and the recommended category — and the rule that produced it — will appear here.</div>
+          <div class="timeline-note" id="vTime"></div>
+          <div class="override"><span class="lab">Officer override</span>
+            <select id="override"><option value="AUTO" selected>Accept recommendation</option><option value="CAT 1">Set CAT 1</option><option value="CAT 2">Set CAT 2</option><option value="CAT 3">Set CAT 3</option><option value="CAT 4">Set CAT 4</option><option value="NEAR MISS">Set Near Miss</option><option value="FYI">Set FYI</option></select></div>
+        </div>
+      </div>
+
+      <div class="doc-head">
+        <h2>Generated IR</h2>
+        <div class="out-actions">
+          <button class="copy-btn" id="editBtn" type="button">Edit</button>
+          <button class="copy-btn" id="copyBtn">Copy report</button>
+        </div>
+      </div>
+
+      <div class="paper prose" id="narrativePaper">
+        <div class="pclass" id="nClass">UNCLASSIFIED</div>
+        <div id="irHeading">—</div>
+        <div id="nBody"></div>
+        <div class="pfoot" id="nFoot">REPORTING PERSONNEL: —</div>
+      </div>
+
+      <div class="refbox" id="refBox">
+        <button class="ref-toggle" id="refToggle" type="button"><span id="refLabel">Matched reference template</span><span id="refChevron">▾</span></button>
+        <div class="ref-body" id="refBody"></div>
+      </div>
+
+      <div class="advisory"><b>Advisory, not authority.</b> The category is a recommendation from the SAF incident-category criteria applied to your inputs. The duty officer owns the final category; use the override when context warrants. GSOC is the final authority.</div>
+      <div class="opsec">OPSEC: drafting aid running locally in your browser. Nothing is transmitted or stored. Do not enter classified material or personal data unless hosted on an approved system.</div>
+
+      <div class="submit-bar">
+        <span class="stat-chip" id="submitHint">Review the write-up, then log the incident.</span>
+        <button class="submit-btn" id="submitBtn" type="button">Submit &amp; log incident</button>
+      </div>
+    </section>
+  </div>
+  </div><!-- /tab-file -->
+
+  <!-- ===== INCIDENT MANAGEMENT ===== -->
+  <div class="tabpanel" id="tab-manage">
+    <div class="manage">
+      <div class="manage-head">
+        <h2>Incident Management</h2>
+        <div class="mfilters">
+          <div class="mfilter" id="mFilter">
+            <span class="mf-lab">Status</span>
+            <button data-s="all" class="on" type="button">All</button>
+            <button data-s="Open" type="button">Open</button>
+            <button data-s="Closed" type="button">Closed</button>
+          </div>
+          <div class="mfilter" id="mCatFilter">
+            <span class="mf-lab">Category</span>
+            <button data-c="all" class="on" type="button">All</button>
+            <button data-c="FYI" type="button">FYI</button>
+            <button data-c="CAT 1" type="button">CAT 1</button>
+            <button data-c="CAT 2" type="button">CAT 2</button>
+            <button data-c="CAT 3" type="button">CAT 3</button>
+            <button data-c="CAT 4" type="button">CAT 4</button>
+            <button data-c="NEAR MISS" type="button">Near Miss</button>
+          </div>
+          <div class="mfilter mfilter-date" id="mDateFilter">
+            <span class="mf-lab">Reported</span>
+            <label class="mf-date">From <input type="datetime-local" id="mDateFrom"></label>
+            <label class="mf-date">To <input type="datetime-local" id="mDateTo"></label>
+            <button type="button" id="mDateClear">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div id="incList"></div>
+    </div>
+  </div>
+
+  </div><!-- /appShell -->
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id);};
+  var TEMPLATES=[{"s": "NEAR MISS", "ty": "Eronous chamber of round", "tx": "NMIR: (No Injuries to Personnel) Erroneous Chamber of Round at Stagmont Camp Guard Room NSF Enlistee [XXXX] (XXX) while on Regimental Guard (RG) duty erroneously chambered a 5.56mm ball round into SAR 21 at the bullet catcher placed outside guardroom prior to prowler duty at Stagmont Camp on XX XXXXH XXX 26. Service personnel was performing RG duty for the first time. According to unit, service personnel erroneously cocked the SAR 21 after loading the magazine when the command ‘load magazine’ was given. The Round was subsequently removed under supervision of the Guard Commander and it was observed that the round tip was dented and the percussion cap remained unstruck. As an immediate follow‑up, a JIT was conducted for all duty personnel."}, {"s": "NEAR MISS", "ty": "Eronous chamber of round", "tx": "[NM/26/008] NMIR: (No Injuries to Personnel) Erroneous Chamber of Round at XXX Guard Room NSF Specialist [XXX] (XXX), prior to performing his guard duty, chambered a 5.56mm ball round into his SAR 21 at the bullet catcher placed outside XXX Camp Guardroom on XX XXXXH XXX 26. According to Brigade Duty Officer, service personnel cocked his weapon after the wrong command 'Ready' was given by the Guard Commander (GC) [XXX] (XX). The round was subsequently removed under the supervision of the Brigade Orderly Sergeant (BOS) and it was observed that the percussion cap was struck. As an immediate follow-up, BOS had reminded all duty personnel on the correct procedure to prevent a recurrence. No injuries to personnel."}, {"s": "NEAR MISS", "ty": "Negligent Discharge", "tx": "NMIR: (No Injuries to Personnel) Negligent Discharge (Blank) of 5.56mm Blank Blank NSF [Specialist Cadet / Enlistee / Officer Cadet] [XXX] (XXX) discharged a 5.56mm plastic blank at BCTC training area on XX XXXXH XXX 26. Service personnel squeezed the trigger of a LMG during section profecency test. A safety pause was called by the Supervising Officer and a safety briefing was conducted to all participants and training was resumed subsequently. Unit is investigating."}, {"s": "NEAR MISS", "ty": "Negligent Discharge", "tx": "NMIR: (No Injuries to Personnel) Negligent Discharge (Live) of 40mm High Explosive Dual Purpose (HEDP) Round at XXX XXX Range On 17 1624H Apr 26, NSF Officer Cadet [XXX] (XXX) discharged a 40mm High Explosive Dual Purpose (HEDP) Round at XXX XXX Range Serviceman accidentally discharged a round after misinterpreting communication between Conducting Officer and Bay Safety as command to “Fire” towards target. A safety pause was called by Supervising Officer and a safety briefing was conducted for all participants. Live firing subsequently resumed. Unit is investigating"}, {"s": "NEAR MISS", "ty": "Safety Breach", "tx": "[NM/26/XXX] NMIR: Participation in IPPT with Ineligible PES Status NS Enlistee [XXX] (XXX) participated in IPPT at XXX on XX XXXXH XXX 26. According to unit, upon attempting to key in the results on XX XXX 26, it was revealed that service personnel’s PES status was B4, rendering service personnel ineligible for IPPT. Service personnel had assumed that the PES status had been upgraded. Unit is investigating."}, {"s": "NEAR MISS", "ty": "Safety Breach", "tx": "[NM/25/20] NMIR: (No Injuries to Personnel) Regular Warrant Officer [XXX[ (XXX) Performed a Reserve Activation Drill During a Military Freefall (MFF) Live Descent Regular Warrant Officer XXX performed a Reserve Activation Drill at Sembawang Air Base on 09 1545H Oct 25 during MFF Live Descent. Regular Warrant Officer and Regular Specialist [XXX] (XXX) were approaching each other after canopy deployment. Unable to avoid, both servicemen carried out the MFF SOP to communicate with each other and serviceman executed the reserve activation drill. Both servicemen landed safely within the designated drop zone. No injuries to personnel. Late reporting by unit, unit will submit LOE to GSOC to explain the late reporting."}, {"s": "NEAR MISS", "ty": "Infrastructure", "tx": "[NM/25/13] NMIR: (No Injuries to Personnel) Shattered Glass Door On 15 1100H Sep 25, Ops Manager [XXX] discovered a shattered glass door at Block 37, Business Centre, Maju Camp. Preliminary investigations revealed that the incident was caused by strong winds during a heavy thunderstorm. IFM has removed the shattered glass door and covered the affected area with a wooden board. Arrangements have been made to repair the glass door. No injuries to personnel."}, {"s": "NEAR MISS", "ty": "Infrastructure", "tx": "[NM/25/09] NMIR: (No Injuries to Personnel) Multiple Pieces of Spalling Concete found at Blk XX, XXX Camp Maju Camp Ops Manager [XXX] (XXX) reported the discovery of spalling concrete that had fallen from one of the pillars at the external wall of Block 50, Maju Camp on XX XXXH XXX 25. Arrangements have been made to clear the debris. The affected area has been cordoned off for safety and further inspection. IFM will assess the cause of the incident and check for any similar issues in the surrounding area. Unit is investigating."}, {"s": "NEAR MISS", "ty": "Infrastructure", "tx": "[NM/25/06] NMIR: (No Injury to Personnel) A Piece of Ceiling Plasterboard Discovered on the Floor (Approx. Size of 150cm by 20cm) XXXX reported the discovery of a piece of ceiling plasterboard on the floor at Blk XXX, outside the XXXX, XXX Camp on XX XXXXH XXX 25. Prelim investigations by IFM, revealed that the incident was the result of water seepage from the roof. IFM will be replacing the affected plasterboard. No injury to personnel."}, {"s": "CAT 1", "ty": "(Service Related) Demise of", "tx": "(Service Related) Demise of Regular Military Expert [XXXXXXXXX] (XXXXXX) Age XX, Involved in a Road Traffic Accident (RTA) Regular Military Expert was pronounced dead on XX XXXXH Feb 25 by Khoo Teck Puat Hospital. According to SPF, serviceman was on his Privately Owned Vehicle (Motorcycle), involved in an RTA with a civilian lorry along TPE toward SLE after Punggol exit 10 at about XX XXXXH Feb 25. Serviceman was enroute from work to home when the incident occurred. SCDF ambulance arrived at XX XXXXH Feb 25. Serviceman was in uniform. Formation Executive Group was completed at 26 2030H Feb 25. NOK has been informed. Unit is providing assistance to the fami"}, {"s": "CAT 1", "ty": "Demise of NS Enlistee", "tx": "Demise of NS Enlistee [XXXXXXXXXX] (XXXXXX), Age XX - Collapsed After NS-FIT Training Serviceman was pronounced dead on 30 2154H Jun 25 by National University Hospital (NUH). On 30 2033H Jun 25, MJOC informed that a serviceman collapsed along Clementi Road (main road outside Maju Camp) after a NS-FIT training session at Maju Camp FCC. Member of Public called SCDF for assistance at 2016hrs. SCDF arrived on site at 2025hrs. Serviceman (unconscious) was conveyed to NUH at 2050hrs and arrived at 2058hrs. NOK was informed by SPF. An AEG, chaired by COA, was convened on 01 0015H Jul 25 to manage the incident."}, {"s": "CAT 1", "ty": "(Select): Discovery of", "tx": "(Select): Discovery of 02 x Top Secret, 09 x Secret, 04 x Confidential and 02 x Restricted Materials On 23 Jun 26, Security Manager [XXXXXXXXX] (XXXXX) discovered 17 classified materials in old drawers that were pending disposal within Helicon, Hillview Camp. The classified materials comprised: (a) 15 hardcopy documents (02 x Top Secret, 08 x Secret, 03 x Confidential, 02 x Restricted); and (b) 02 Compact Discs (01 x Secret and 01 x Confidential). All classified materials were accounted for and remained intact within Helicon premises (currently safekept at CSDG under ASB's purview). Of the 17 classified materials, 16 were legacy G3 Army documents dated 1994–2004. The remaining item was a printed document dated in Mar 2024 by an ex‑regular (ACSG) who had since left service. This document contained Exercise Army ORBAT details. The removed drawers were part of a housekeeping effort initiated by Regular Warrant Officer [XXXXXXXXX] (XXXXX) to clear broken furniture, printers, and obsolete IT systems. Service personnel engaged a SAF‑approved civilian contractor (XXXXXXXXXXXXXXXX) that is cleared to access and operate in Helicon. As an immediate precaution, GS(Ops) has: (a) ceased all furniture movement out of Helicon; (b) directed the respective complexes to clear old documents; and (c) reminded all personnel of the requirements to escort and supervise contractors at all times. GS(Ops) will convene a Formation Board of Inquiry (FBOI) on 25 Jun 26 to establish facts and recommend follow‑up actions. Separately, the contractors involved will be referred to ASB/MSD to ascertain the full damage assessment. MSD was informed."}, {"s": "CAT 2", "ty": "Demise of Regular Specialist", "tx": "Demise of Regular Specialist [XXXXXXXXXXXX] (XXXXX), Age XX - Found Unconscious in Swimming Pool Serviceman was pronounced dead on XX XXXXH Aug 25 by Changi General Hospital (CGH). According to unit, serviceman was found unconscious alone in the swimming pool, Hendon Camp on XX XXXXH Aug 25. Serviceman was sent to CGH via SCDF ambulance and was 'U' on the AVPU scale throughout. NOK informed. Army Executive Group will be convened by Chief of Army at 09 1030H Aug 25."}, {"s": "CAT 2", "ty": "Demise of Civilian Contractor", "tx": "Demise of Civilian Contractor [XXXXXXXX] (XXXXXXXXX), Age XX Civilian was pronounced dead by XXXXXXXXX Hospital (SXXX) on XX XXXXH Apr 25. (time and cause of death to be determined after autopsy). Civilian was found unconscious at Block 16, Level 1 toilet, Ladang Camp on XX XXXXH Apr 25. Civilian was attended on site by Pulau Tekong Medical Centre Medical Officer and was subsequently heli-evacuated to SGH. Civilian was 'U' on the AVPU scale. Civilian's Company will be providing assistance to the family."}, {"s": "CAT 2", "ty": "(Non-SAF Related) Demise of Regular Enlistee", "tx": "(Non-SAF Related) Demise of Regular Enlistee [XXXXXXXX] (XXXXXXXX), Age XX - Due to Illness Servicewoman was pronounced dead on XX XXXXH May 25 by XXXXXXXXXXX Hospital (XXXX). Servicewoman was diagnosed with a malignant brain tumor sometime in Aug 2023 and was warded at KTPH since XX Apr 25. She was on sponsored study since 17 Apr 23. Unit was informed of the demise by the servicewoman's NOK on 19 0800H May 25. The wake will be held at her residence Block 103, Canberra Street from 18 May to 20 May 25. The burial service will be held at Choa Chu Kang Cemetery on XX XXXXH May 25. Unit is providing assistance to the family."}, {"s": "CAT 2", "ty": "(Select): Discovery of", "tx": "(Select): Discovery of 02 x Top Secret, 09 x Secret, 04 x Confidential and 02 x Restricted Materials On 23 Jun 26, Security Manager [XXXXXXXXX] (XXXXX) discovered 17 classified materials in old drawers that were pending disposal within Helicon, Hillview Camp. The classified materials comprised: (a) 15 hardcopy documents (02 x Top Secret, 08 x Secret, 03 x Confidential, 02 x Restricted); and (b) 02 Compact Discs (01 x Secret and 01 x Confidential). All classified materials were accounted for and remained intact within Helicon premises (currently safekept at CSDG under ASB's purview). Of the 17 classified materials, 16 were legacy G3 Army documents dated 1994–2004. The remaining item was a printed document dated in Mar 2024 by an ex‑regular (ACSG) who had since left service. This document contained Exercise Army ORBAT details. The removed drawers were part of a housekeeping effort initiated by Regular Warrant Officer [XXXXXXXXX] (XXXXX) to clear broken furniture, printers, and obsolete IT systems. Service personnel engaged a SAF‑approved civilian contractor (XXXXXXXXXXXXXXXX) that is cleared to access and operate in Helicon. As an immediate precaution, GS(Ops) has: (a) ceased all furniture movement out of Helicon; (b) directed the respective complexes to clear old documents; and (c) reminded all personnel of the requirements to escort and supervise contractors at all times. GS(Ops) will convene a Formation Board of Inquiry (FBOI) on 25 Jun 26 to establish facts and recommend follow‑up actions. Separately, the contractors involved will be referred to ASB/MSD to ascertain the full damage assessment. MSD was informed."}, {"s": "CAT 2", "ty": "Ammunition Discovered in Public", "tx": "Ammunition Discovered in Public On XX XXXXH Jan 25, SPF informed MJOC that 01 x unexpended 7.62mm ball round (headstamp: XXXXXXXX) was found during a search on a civilian for suspected drug consumption. According to SPF, civilian received the round (as an amulet) from his friend 30 years ago, who got it from a “master” in Thailand. SAFAC has confirmed that SAF has similar batch of rounds in its inventory and was also issued to units between 04 May 06 to 16 Jul 24. The round is currently held by SPF. SIB and MSD informed."}, {"s": "CAT 2", "ty": "Ammunition Discovered in CAMP", "tx": "Discovery of Ammunition at Ladang Camp, Pulau Tekong On XX XXXXH Oct 24, a contractor from C&W Services, discovered multiple small arms ammunition and two tubes containing black powder above a ceiling board in Block 30, #01-09 (Wolf Company, platoon office), Ladang Camp, Pulau Tekong during a routine check. The following ammunition were discovered: 1. 06 x 5.56mm Tracer Rounds (unexpended) 2. 06 x 5.56mm Ball Rounds (unexpended) 3. 06 x 5.56mm empty cartridges 4. 01 x 7.62mm empty cartridge 5. 01 x 5.56mm Plastic Blank Round (unexpended) 6. 02 x 5.56mm Plastic Blank Rounds (expended) 7. 02 x Tubes containing black powder The ammunition was handed over to SIB for investigation on 09 1850H Oct 24. ASB informed."}, {"s": "CAT 2", "ty": "CAT2", "tx": "(Serious, Life Threatening and Non-Training related) Hospitalisation of Regular Specialist (XXX) - Seizure Serviceman was warded at Changi General Hospital (CGH) (ICU Ward) on 26 1000H Dec 24 for Seizure. On 25 0900H Dec 24, serviceman sought medical attention at CGH for fever and altered mental state, and was warded in general ward for observation. On 26 0930H Dec 24, serviceman suffered a seizure and was transferred to ICU for monitoring. He is currently intubated and sedated. Condition stable. NOK aware. HQ AMS has classified serviceman's condition as serious, life threatening and non-training Related."}, {"s": "CAT 2", "ty": "CAT2", "tx": "Unaccounted of 01 x Communications and Electronic Operating Instruction (CEOI) (Secret) Regular Specialist [XXXXXXXXXXXXX] (XXXXXXX) reported that 01 x CEOI with MINDEF Seal (2984793) was unaccounted for during equipment check for Ex CONCORDE on 13 2245H Nov 25. According to unit, the CEOI was last accounted at 13 1100hrs Nov 25 before it was locked in a Peacekeeper Protected Response Vehicle (PRV) (MID 89211). Search is ongoing. ASB and MSD informed."}, {"s": "CAT 2", "ty": "Loss of 03 x SSNB (Secret)", "tx": "Loss of 03 x SSNB (Secret); 01 x OSN2 (Confidential); 43 x OSN and 09 x INET (Restricted) On 22 1630H Jun 26, SWI reported the loss of 56 devices, comprising 03 x SSNB (Secret), 01 x OSN2 (Confidential), 43 x OSN and 09 x INET (Restricted). According to the unit, the discrepancy was discovered by Regular Warrant Officer [XXXXXXXXXXXX] (XXX) on 22 1630H Jun 26. The “CIT-MINDEF Supported Army Service Inventory” document in HQ Signals was used to cross-check the device types against the serial numbers in the Enterprise System list. A Formation Board of Inquiry (FBOI) has been convened to account for the devices and establish the cause of the discrepancy/ loss. Search and reconciliation are ongoing. MSD and ACSG have been informed."}, {"s": "CAT 3", "ty": "Reffered", "tx": "FYI (PSY): NSF Enlistee XXX (XXX) Referred to Institute of Mental Health (IMH) - Suicidal Thoughts Service personnel called SAF Counselling Hotline on 28 0239H Jun 26 to seek help for suicidal thoughts, resulting in SAF Counselling Centre calling SPF for assistance. SPF subsequently sent serviceman to IMH via SPF patrol car. NOK aware. On the same day, service personnel was given outpatient treatment with medical leave till 29 Jun 26."}, {"s": "CAT 3", "ty": "Warded", "tx": "3IR (PSY) Final Report: NSF Enlistee [XXX] (XXX) Warded at Institute of Mental Health (IMH) - Psychological Issues < Service personnel was warded at IMH on 26 0120H Jun 26 for observation. > On 26 2326H Jun 26, unit updated that service personnel was discharged from IMH with medical leave till 01 Jul 26."}, {"s": "CAT 3", "ty": "Sought", "tx": "FYI (PSY): NSF Enlistee [XXX] (XXX) Sought Medical Attention at Institute of Mental Health (IMH) - Psychological Issues Service personnel sought medical attention at IMH for psychological issues on 27 1423H Jun 26. Service personnel went to IMH via public transport. NOK aware. On the same day, service personnel was given outpatient treatment with no medical leave."}, {"s": "CAT 3", "ty": "Civil Offence", "tx": "3IR: Civil Offence - Regular Specialist [XXX] (XXX) Alleged Cheating and Dishonestly Inducing a Delivery of Property Service personnel was arrested by SPF at XXX on 24 1920H Jun 26 for the alleged offence committed (XXX). Service personnel was brought to Police Cantonment Complex HQ and was subsequently released on bail of $5,000. Service personnel is required to report to Clementi Division HQ on 09 1430H Jul 26."}, {"s": "CAT 3", "ty": "Civil Offence", "tx": "3IR: Civil Offence - NSF Enlistee [XXX] (XXX) Alleged Licensing of Drivers Service personnel is required to report to Traffic Police HQ on 19 1500H Jun 26 for the alleged offence committed along Prinsep Street near Sim Lim Square on 07 0230H Jun 26."}, {"s": "CAT 3", "ty": "Civil Offence", "tx": "3IR: Civil Offence - NSF Enlistee [XXX] (XXX) Alleged Criminal Intimidation Service personnel is required to report to Ang Mo Kio Police Division HQ on 22 1030H Jun 26 for the alleged offence committed at service personnel residence on 07 1300H Jun 26."}, {"s": "CAT 3", "ty": "Pending", "tx": "3IR: NSF Enlistee [XXX ] (XXX) Suspected Heat Injury - Static Line Jump Currency Service personnel felt unwell during day combat equipment static line jump currency at XXX on 25 1645H Jun 26. Initial tympanic temperature was 38.6 degrees Celsius. Service personnel was referred to XXX Hospital (XXX) via SCDF ambulance, accompanied by a commander. Service personnel was A on the AVPU scale throughout. NOK informed. On 26 1430H Jun 26, unit updated that service personnel was given outpatient treatment with medical leave till 29 Jun 26. The diagnosis given by XXX was heat exhaustion. Awaiting confirmation of diagnosis by HQ AMS."}, {"s": "CAT 3", "ty": "Confirmation", "tx": "3IR Final Report: NSF Enlistee [XXX] (XXX) Suspected Heat Injury - Company Mission Exercise (CME) (HQ AMS confirmed as Non-Heat Injury) < Service personnel felt nauseous during CME at XXX Training Area on 20 1230H May 26. > On 16 1707H Jun 26, HQ AMS confirmed the diagnosis as non-heat injury."}, {"s": "CAT 3", "ty": "HEAT", "tx": "3IR Final Report: NSF Enlistee [XXX] (XXX) Suspected Heat Injury - Sectional Training (HQ AMS confirmed as Mild Heat Related Illness) < Service personnel felt unwell while participating in Sectional Training at Nee Soon Camp on 15 1100H Jun 26. Service personnel was sent to XXX Hospital (XXX) via SAS ambulance, accompanied by a commander. Service personnel was A on the AVPU scale. NOK informed. > On 22 1421H Jun 26, HQ AMS confirmed the diagnosis as mild heat related illness."}, {"s": "CAT 3", "ty": "BDFC", "tx": "3IR Final Report: Gastrointestinal Outbreak at XXX < BDFC has declared a GID outbreak in XXX Camp on 05 1227H Jun 26. There are 34 service personnel confirmed with GID-related symptoms. All confirmed cases are in stable condition. > On 15 1141H Jun 26, BDFC declared the outbreak closed. A total of 52 cases were found to meet the case criteria. Following the declaration, investigations were conducted and control measures were promptly instituted. Affected cases were reviewed at the Medical Centre and were recovering."}, {"s": "CAT 3", "ty": "Dengue", "tx": "3IR: Regular Officer [XXX] (XXX) Diagnosed with Dengue Fever - XXX Camp Service personnel sought medical attention at XXX Clinic for fever on 13 1600H Jun 26 and was tested positive for dengue following a blood test result on 14 0800H Jun 26. Service personnel was given medical leave till 16 Jun 26. Service personnel was last in XXX Camp on 12 Jun 26. Service personnel’s residence [XXX] is classified under NEA’s list of dengue clusters. This is the first case from XXX Camp within the last 14 days, with the previous case reported on 12 Sep 23."}, {"s": "CAT 3", "ty": "BDFC", "tx": "3IR Final Report: Conjunctivitis Outbreak at XXX, XXX < BDFC declared a conjunctivitis outbreak at XXX Company, XXX, XXX Camp, XXX. > On 16 1200H Jun 26, BDFC declared the outbreak closed. A total of two cases were found to meet the case criteria."}, {"s": "CAT 3", "ty": "POV(M)", "tx": "3IR: (Injuries to Personnel) Road Traffic Accident Involving POV(M) and Civilian Motorcycle on Public Road (Reputational Risk) POV(M) (XXX) ridden by NSF [XXX] (XXX) collided with a civilian motorcycle along XXX towards XXX before XXX on 16 0850H Jun 26. Service personnel was in uniform. Service personnel was en route from residence to XXX Camp when the incident occurred. Service personnel sustained superficial wounds to the right knee and right hand and was administered first aid on site by SCDF ambulance."}, {"s": "CAT 3", "ty": "Equipment", "tx": "3IR: Loss of One MCN Phone (Confidential) With SIM Card Regular Officer [XXX] (XXX) reported the loss of one MCN phone (MCN Serial Number: XXX) with SIM Card at Blk XXX, Level X,XX Office, XXX Camp on 20 0800H May 26. According to unit, item was discovered lost during HOTO and was last seen on 19 May 26. A search was conducted but to no avail. Unit had ceased the search on 24 1732H May 26. Unit is investigating. On 25 0900H May 26, unit updated that SAF Mobile Ops Centre has remotely locked the MCN phone and SIM card have been disabled and cannot be repurposed if used with a non-MCN phone."}, {"s": "CAT 3", "ty": "Infrastructure", "tx": "3IR: Gas Pipe Leakage Detected at XXX On 01 1414H Apr 26, XXX reported a detection of gas leakage in one of the three stalls at Block XX canteen, XXX at XXXXhrs. Gas supply to the affected stall has since been shut off. IFM was informed, and arrangements have been made for assessment and repair. Unit will monitor the progress."}, {"s": "CAT 3", "ty": "Infrastructure", "tx": "3IR: Disruption of Water Supply to Kranji Camp - Damage to Water Pipe Valve Military Expert [XXXX] reported a disruption of water supply from Blk 826 to 831, Kranji Camp on 30 1530H Mar 26. A water pipe valve on a riser at Block 831 was found to be leaking. Water supply will be provided from unaffected blocks in the vicinity. IFM informed and repairs are ongoing, with completion assessed before 30 2300H Mar 26. No ops implications."}, {"s": "CAT 3", "ty": "Infrastructure", "tx": "3IR: (No Injuries to personnel) A Part of a Ceiling Cement Fell (approx. size 12cm x 8cm) Sup Base - E reported that a part of a ceiling cement fell at Blk XX, XXX, XXX Camp on 01 1638H Apr 26. Initial assessment that the cement fell might be due the construction work next to the office. IFM was informed and arrangements were made to inspect the roof. No injuries to personnel."}, {"s": "CAT 3", "ty": "Referred to Hospital", "tx": "3IR: Regular Military Expert [XXX] (XXX) & [XXX] (XXX) Referred to Hospital - Cut on Elbow and Wrist Service personnel A, [XXX] (XXX), sustained a cut to his left elbow/forearm at his residence in the early hours of XXXXX at about XXXXH, following alcohol consumption. The injury involved a kitchen knife. Service personnel B, [XXX] (XXX), was injured while intervening and sustained a cut to her left wrist. Service personnel A’s spouse subsequently contacted SPF for assistance. On 28 0720H Mar 26, unit updated that both service personnel were discharged from NTFGH with no medical leave."}, {"s": "CAT 3", "ty": "Referred to Hospital", "tx": "3IR: Regular Military Expert [XXX] (XXX) Referred to Hospital (Overseas) - Right Big Toe Dislocated Fracture Service personnel accidentally dropped a XXXX onto his right big toe while transporting the battery equipment in preparation of the maintenance task at XXXX Germany on 07 1520H Apr 26 (LT: XX XXXXB Apr 26). Personnel was wearing safety steel‑toe boots, and the battery dropped onto the front part of the steel‑toe boot. Service personnel sought medical attention at XXX Camp Medical Centre and was subsequently referred to XXX Hospital for further treatment via SAF rented vehicle, accompanied by a commander. NOK informed. On XX XXXXH Apr 26 (LT: XX XXXX XXX 26), service personnel was given outpatient treatment and returned back to Haide Camp. The diagnosis given by XXX Hospital was dislocated fracture on right big toe. The Frame Medical Officer reviewed the service personnel's condition and decided to repatriate him back to Singapore on XX XXX 26 for surgery."}, {"s": "CAT 3", "ty": "Loss of Ammunition", "tx": "3IR: Loss of One LMG Magazine Loaded with 30 x 5.56mm Plastic Blanks NSF Enlistee [XXX] (XXX) reported the loss of one LMG magazine loaded with 30 x 5.56mm plastic blanks in the vicinity of XXX on XX XXXXH Apr 26. Service personnel discovered the loss during equipment check while participating in the company mission exercise. Search was conducted but to no avail. Unit had ceased the search on XX XXXH Apr 26. Unit is investigating."}, {"s": "CAT 3", "ty": "Loss Of Equipment", "tx": "3IR Final Report: Loss of One OSN3 Laptop (Confidential) <Service personnel [XXX] (XXX) reported the loss of one OSN3 laptop (S/No XXX) in the vicinity of XXX and XXX on XX XXXXH XXX 26.> On XX XXXXH Mar 26, unit updated that the laptop was handed over to XXXX Camp by a member of public. The laptop was subsequently retrieved by the service personnel."}, {"s": "CAT 3", "ty": "Vehicle", "tx": "3IR: (No Injuries to Personnel) Reverse Incident Involving SAF Vehicle - LUV An XXX (XXX) driven by NSF Enlistee [XXXX] (XXX) reversed and hit a pillar at Blk X, XXX Camp on XX XXXXH XXX 26. XXX was reversing to exit XXX parking area when the incident occurred. No injuries to personnel. XXX right signal mount and side mirror damaged. Pillar chipped. Unit is investigating."}, {"s": "CAT 4", "ty": "Hospitilisation", "tx": "4IR: Hospitalisation of Civilian Contractor [XXX] (XXX) - Laceration on Left Foot (First and Second Toes) Civilian contractor was warded at XXX Hospital (XXX) (General Ward) on 05 1400H Jun 26 for laceration on left foot (first and second toes). According to unit, a Battery Operated Cart (BOC) rolled forward when it's parking brake was not engaged by Cleaning Supervisor [XXX] (XXX), resulting in it rolling over the civilian contractor's left foot at Blk 328, Jurong Camp 2 on 05 1000H Jun 26. Civilian contractor sustained a laceration to the left foot. Civilian contractor was sent to XXX Medical Centre and subsequently conveyed to XXX via SAS ambulance. Civilian contractor was 'A' on the AVPU scale. NOK was informed by the contractor’s supervisor."}, {"s": "CAT 4", "ty": "Hospitilisation", "tx": "4IR Final Report: Hospitalisation of Civilian Contractor [XXXX] (XXXXX) - Low Blood Count < Civilian was warded at Woodlands Hospital (WH) (Acute Ward) on 05 1844H Mar 26 for low blood count. > On 13 1910H Mar 26, unit updated that civilian was discharged from WH and given medical leave till 27 Mar 26."}, {"s": "CAT 4", "ty": "Hospitilisation", "tx": "4IR: Altercation Between Civilian Contractors (XXX) - No SAF Personnel involved TRMC updated that a fight broke out between XXX civilian contractors on XX XXXXH Mar 26. According to TRMC, a fight broke out resulting XXX civilian contractors were injured. They were at XXX doing Waterproofing Works. Civilian Contractor's Supervisor called SCDF and all injured civilian contractors were subsequently conveyed to XXX. All injured civilian contractors were A on AVPU scale. NOK informed by supervisor."}];
+
+  var tog=function(name){var el=document.querySelector('input[name="'+name+'"]:checked');return el?el.id:"";};
+
+  /* ---- auth (placeholder) ---- */
+  function doLogin(){
+    var u=$("loginUser").value.trim(),p=$("loginPass").value;
+    if(!u||!p){$("loginErr").textContent="Enter a username and password to continue.";return;}
+    $("loginErr").textContent="";$("sessionUser").textContent=u;
+    $("loginScreen").classList.add("hidden");$("appShell").classList.remove("hidden");
+    showTab("overview");renderDash();renderManage();
+  }
+  function doLogout(){
+    $("appShell").classList.add("hidden");$("loginScreen").classList.remove("hidden");
+    $("loginUser").value="";$("loginPass").value="";$("loginErr").textContent="";$("loginUser").focus();
+  }
+  $("signinBtn").addEventListener("click",doLogin);
+  $("loginPass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
+  $("loginUser").addEventListener("keydown",function(e){if(e.key==="Enter")$("loginPass").focus();});
+  $("logoutBtn").addEventListener("click",doLogout);
+
+  /* ---- Who: repeatable personnel rows ---- */
+  var SVC_OPTS='<option value="">— Service type —</option>'
+    +'<optgroup label="NSF"><option>NSF Enlistee</option><option>NSF Specialist Cadet</option><option>NSF Specialist</option><option>NSF Officer Cadet</option><option>NSF Officer</option></optgroup>'
+    +'<optgroup label="Regular"><option>Regular Enlistee</option><option>Regular Specialist Cadet</option><option>Regular Specialist</option><option>Regular Warrant Officer</option><option>Regular Officer Cadet</option><option>Regular Officer</option><option>Military Expert</option></optgroup>'
+    +'<optgroup label="NSmen"><option>NS Enlistee</option><option>NS Specialist</option><option>NS Warrant Officer</option><option>NS Officer</option><option>NS Military Expert</option></optgroup>'
+    +'<optgroup label="Civilian / External"><option>DXO</option><option>Civilian Contractor</option><option value="Civilian">Civilian (other)</option></optgroup>';
+  function noRankSvc(s){return /^Civilian/i.test(s)||s==="DXO";}
+  function isCompanySvc(s){return /^Civilian/i.test(s);}
+
+  function whoRow(){
+    var row=document.createElement("div");row.className="who-row";
+    row.innerHTML='<select class="w-svc">'+SVC_OPTS+'</select>'
+      +'<input type="text" class="w-rank" placeholder="Rank">'
+      +'<input type="text" class="w-name" placeholder="Name">'
+      +'<input type="text" class="w-unit" placeholder="Unit">'
+      +'<button class="rm" title="Remove" type="button">✕</button>';
+    var svc=row.querySelector(".w-svc"), rank=row.querySelector(".w-rank"), unit=row.querySelector(".w-unit");
+    function tog(){var v=svc.value;rank.disabled=noRankSvc(v);if(noRankSvc(v))rank.value="";unit.placeholder=isCompanySvc(v)?"Company name":"Unit";}
+    svc.addEventListener("change",function(){tog();render();});
+    row.querySelector(".rm").addEventListener("click",function(){row.remove();render();});
+    row.querySelectorAll("input,select").forEach(function(i){i.addEventListener("input",render);i.addEventListener("change",render);});
+    return row;
+  }
+  $("addWho").addEventListener("click",function(){$("whoList").appendChild(whoRow());render();});
+  function readInvolved(){
+    var out=[];
+    document.querySelectorAll("#whoList .who-row").forEach(function(r){
+      var svc=r.querySelector(".w-svc").value.trim(),rank=r.querySelector(".w-rank").value.trim(),
+          name=r.querySelector(".w-name").value.trim(),unit=r.querySelector(".w-unit").value.trim();
+      if(noRankSvc(svc))rank="";
+      if(svc||rank||name||unit)out.push({svc:svc,rank:rank,name:name,unit:unit});
+    });
+    return out;
+  }
+  // "{ServiceType} {RANK} {Name} (UNIT)" — names title-cased, unit always upper-cased
+  function personStr(o){
+    var head=[o.svc, o.rank?up(o.rank):"", nameCase(o.name)].filter(Boolean).join(" ");
+    return (head+(o.unit?(" ("+up(o.unit)+")"):"")).trim();
+  }
+
+  /* ---- generic field wiring ---- */
+  var simpleIds=["dtg","reportedDtg","caseNo","rpRank","rpName","rpUnit","rpContact",
+    "nature","natureOther","title","rptUnit","what","where","why","how",
+    "curStatus","nok","pocSvc","pocRank","pocName","pocUnit","pocPhone","account","note","override"];
+  simpleIds.forEach(function(id){var el=$(id);if(el){el.addEventListener("input",render);el.addEventListener("change",render);}});
+
+  // Service type triggers (POC fields): DXO/Civilian -> blank & disable rank; Civilian -> unit becomes company name
+  function svcToggle(prefix){
+    var v=$(prefix+"Svc").value;
+    var rank=$(prefix+"Rank");
+    rank.disabled=noRankSvc(v); if(noRankSvc(v))rank.value="";
+    $(prefix+"RankLab").textContent=noRankSvc(v)?"Rank (n/a)":"Rank";
+    $(prefix+"UnitLab").textContent=isCompanySvc(v)?"Company name":"Unit";
+  }
+  $("pocSvc").addEventListener("change",function(){svcToggle("poc");render();});
+  ["out"].forEach(function(n){
+    document.querySelectorAll('input[name="'+n+'"]').forEach(function(el){el.addEventListener("change",render);});
+  });
+  $("nature").addEventListener("change",function(){renderDeterminants($("nature").value);render();});
+
+  $("resetBtn").addEventListener("click",function(){
+    simpleIds.forEach(function(id){var el=$(id);if(!el)return;if(el.tagName==="SELECT")el.selectedIndex=0;else el.value="";});
+    $("whoList").innerHTML="";$("whoList").appendChild(whoRow());
+    $("outOccurred").checked=true;
+    svcToggle("poc");
+    renderDeterminants("");
+    seedDtg();render();
+  });
+
+  /* ---- conditional visibility ---- */
+  function applyConditionals(){
+    $("natureOtherWrap").classList.toggle("hidden",$("nature").value!=="Other");
+  }
+
+  /* ---- DTG ---- */
+  var MONTHS=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  function pad(n){return (n<10?"0":"")+n;}
+  function buildDTG(){var raw=$("dtg").value;if(!raw)return"";var d=new Date(raw);if(isNaN(d.getTime()))return"";
+    return pad(d.getDate())+pad(d.getHours())+pad(d.getMinutes())+"Z "+MONTHS[d.getMonth()]+" "+String(d.getFullYear()).slice(-2);}
+  function seedDtg(){var d=new Date();var off=d.getTimezoneOffset()*60000;var s=new Date(d-off).toISOString().slice(0,16);$("dtg").value=s;if($("reportedDtg"))$("reportedDtg").value=s;}
+
+  /* ---- prose helpers ---- */
+  // SAF house style: DD HHMMH Mon YY  (e.g. 30 1430H Jun 26)
+  function readableDTG(){var raw=$("dtg").value;if(!raw)return"";var d=new Date(raw);if(isNaN(d.getTime()))return"";
+    var mon=MONTHS[d.getMonth()].charAt(0)+MONTHS[d.getMonth()].slice(1).toLowerCase();
+    return pad(d.getDate())+" "+pad(d.getHours())+pad(d.getMinutes())+"H "+mon+" "+String(d.getFullYear()).slice(-2);}
+  function sent(s){s=(s||"").trim();if(!s)return"";s=s.charAt(0).toUpperCase()+s.slice(1);if(!/[.!?]$/.test(s))s+=".";return s;}
+  function strip(s){return (s||"").trim().replace(/[.;,]+$/,"");}
+  function splitSentences(s){s=(s||"").trim().replace(/\s+/g," ");if(!s)return[];
+    var parts=s.match(/.*?[.!?](?=\s+["“A-Z]|$)|.+$/g);
+    return parts?parts.map(function(x){return x.trim();}).filter(Boolean):[s];}
+  function titleCase(s){var small={of:1,to:1,at:1,the:1,a:1,an:1,and:1,in:1,on:1,for:1,with:1,by:1};
+    return (s||"").split(/\s+/).map(function(w,i){
+      if(i>0&&small[w.toLowerCase()])return w.toLowerCase();
+      return w.charAt(0).toUpperCase()+w.slice(1);}).join(" ");}
+  function leadIn(s){s=strip(s);
+    if(/^[A-Z][a-zA-Z]+\s+Executive\s+Group\b/.test(s))return s;
+    var m=s.match(/^(\S+)/);
+    if(m&&/^[A-Z]{2,}/.test(m[1]))return s;
+    return s.replace(/^./,function(c){return c.toLowerCase();});}
+
+  // Expand "<Level> Executive Group" -> "<Level> Executive Group (XEG)" on first mention
+  var EG_ACR={Army:"AEG",Formation:"FEG",Division:"DEG",Brigade:"BEG",Battalion:"BnEG",
+    Command:"CEG",Installation:"IEG",Institute:"IEG",Joint:"JEG",Service:"SEG",Navy:"NEG"};
+  function egExpand(text,seen){
+    if(!text)return text;seen=seen||{};
+    return text.replace(/\b([A-Z][a-zA-Z]+)\s+Executive\s+Group\b(?!\s*\()/g,function(m,q){
+      var key=q.toLowerCase();if(seen[key])return m;seen[key]=1;
+      var acr=EG_ACR[q]||(q.charAt(0).toUpperCase()+"EG");
+      return q+" Executive Group ("+acr+")";});
+  }
+
+  /* ---- SMS template library matching ---- */
+  var TYPE_TAGS={
+    "Death":["demise","death","pronounced","dead"],
+    "Hospitalisation":["hospitalisation","hospitalization","injury","referred","fracture","laceration","wound","warded"],
+    "Personnel missing":["missing"],
+    "AWOL (absent without leave)":["awol","absent"],
+    "Escape from custody":["escape","custody"],
+    "Attempted suicide / self-harm / overdose":["imh","suicidal","self-harm","psychological","overdose","psy"],
+    "Referred to IMH / CMC":["imh","cmc","psychological","referred","psy"],
+    "Sought Medical Attention at IMH / CMC":["imh","cmc","psychological","sought","medical","attention","psy"],
+    "Warded at IMH / CMC":["imh","cmc","psychological","warded","psy"],
+    "Disciplinary or civil offence":["civil","offence","arrested","alleged","summon"],
+    "Public complaint":["complaint","public"],
+    "Contagious disease":["dengue","conjunctivitis","gastrointestinal","outbreak","bdfc","disease","chickenpox","malaria","tuberculosis"],
+    "Damage to public / private property":["damage","property","collision","traffic"],
+    "Damage to SAF property":["vehicle","reverse","damage","collision","equipment"],
+    "Loss of SAF property":["loss","unaccounted","laptop","phone","device","ceoi","mcn","osn"],
+    "Theft / loss / discovery of ammunition":["ammunition","ammo","round","rounds","blank","live","magazine"],
+    "Major power failure":["power","failure"],
+    "Disruption to utilities (water)":["water","supply","gas","disruption"],
+    "National security / defence / public-sensitivity":["security","national"],
+    "CBRE threat":["cbre"],
+    "Forced entry / intrusion":["intrusion","forced","entry","trespass"],
+    "Unauthorised persons in SAF installation":["unauthorised","intrusion"],
+    "Suspicious item / vehicle / bomb threat":["suspicious","bomb","threat"],
+    "Breach of security (classified)":["classified","secret","confidential","ceoi","discovery","restricted"],
+    "UAS detection / sighting near camp":["uas","drone","uav"],
+    "Outbreak of fire":["fire"],
+    "UAV airspace infringement":["uav","airspace","uas"],
+    "Road traffic accident":["rta","traffic","accident","pov","collision"]
+  };
+  // near-miss subtype cues (matched against the description)
+  var NM_CUES=["chamber","discharge","negligent","erroneous","breach","ippt","pes","infrastructure","ceiling","glass","spalling","plasterboard","concrete","door","reserve","freefall","equipment","training"];
+
+  function descWords(s){
+    return (s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(function(w){return w.length>3;});
+  }
+  function matchTemplate(){
+    if(!TEMPLATES||!TEMPLATES.length)return null;
+    var nat=$("nature").value, isNM=tog("out")==="outNear", cat=$("vCat").textContent;
+    var whoTxt=readInvolved().map(function(p){return p.name+" "+p.unit;}).join(" ");
+    var desc=($("title").value+" "+whoTxt+" "+$("what").value+" "+$("account").value+" "+$("note").value+" "+natureText()).toLowerCase();
+    var tags=(TYPE_TAGS[nat]||[]).concat(descWords(desc));
+    if(isNM)tags=tags.concat(NM_CUES.filter(function(c){return desc.indexOf(c)>=0;}));
+    var best=null,bestScore=-1;
+    TEMPLATES.forEach(function(t){
+      var hay=(t.ty+" "+t.tx).toLowerCase(),score=0;
+      tags.forEach(function(w){if(w.length>2&&hay.indexOf(w)>=0)score++;});
+      if(isNM&&t.s==="NEAR MISS")score+=3; else if(!isNM&&t.s===cat)score+=2;
+      if(score>bestScore){bestScore=score;best=t;}
+    });
+    return bestScore>0?{tpl:best,score:bestScore}:null;
+  }
+
+  var CFG={
+    "CAT 1":{color:"#c2362f",impact:"High impact",time:"Notify GSOC immediately by verbal report; written report to follow."},
+    "CAT 2":{color:"#d97a28",impact:"Medium impact",time:"Report to GSOC per standing reporting timelines."},
+    "CAT 3":{color:"#d8b13a",impact:"Low impact",time:"Submit incident report via ESIS."},
+    "CAT 4":{color:"#3d83a3",impact:"Non-SAF related",time:"Report for awareness / SAF-assistance implications."},
+    "NEAR MISS":{color:"#6b7884",impact:"Potential — no harm",time:"Log as Near Miss for trend analysis."},
+    "FYI":{color:"#5a8f6b",impact:"For information",time:"Report to GSOC for information."},
+    "REVIEW":{color:"#8a93a0",impact:"Refer to GSOC",time:"GSOC is the final authority — confirm category before reporting."}
+  };
+
+  /* ============================================================
+     SAF CATEGORISATION RULESET  (CAT document, Table 3-1-1 / 3-1A-1)
+     Each type: det[] determinants, rules[] (first match wins), def fallback.
+     v = { detId: "value string" }.  yn determinants resolve to "Yes"/"No".
+     ============================================================ */
+  var YN=[{v:"No"},{v:"Yes"}];
+  var SAF_RULES={
+   "Death":{det:[{id:"cause",label:"Cause",kind:"sel",opts:["MINDEF/SAF activity (incl. traffic to/from work)","Non-SAF (illness / medical)"]}],
+     rules:[{t:function(v){return v.cause.indexOf("MINDEF")===0;},cat:"CAT 1",cite:"Death due to MINDEF/SAF activities (incl. traffic to/from work) — CAT 1."},
+            {t:function(v){return v.cause.indexOf("Non-SAF")===0;},cat:"CAT 2",cite:"Death due to non-MINDEF/SAF activities (illness / medical) — CAT 2."}]},
+   "Hospitalisation":{det:[{id:"heat",label:"Heat injury?",kind:"sel",opts:["No","Suspected heat injury","Confirmed heat stroke (HQ AMS)"]},
+                  {id:"life",label:"Life-threatening?",kind:"yn"},
+                  {id:"saf",label:"Due to MINDEF/SAF activity (incl. traffic to/from work)?",kind:"yn"},
+                  {id:"hosp",label:"Service-related hospitalisation / senior officer?",kind:"yn"}],
+     rules:[{t:function(v){return v.heat==="Suspected heat injury";},cat:"CAT 3",cite:"All suspected heat-related injuries are classified CAT 3 pending HQ AMS confirmation."},
+            {t:function(v){return v.heat==="Confirmed heat stroke (HQ AMS)";},cat:"CAT 2",cite:"Heat stroke confirmed by HQ AMS — CAT 2."},
+            {t:function(v){return v.life==="Yes"&&v.saf==="Yes";},cat:"CAT 1",cite:"Serious (life-threatening) injury due to MINDEF/SAF activity — CAT 1."},
+            {t:function(v){return v.life==="Yes"&&v.saf==="No";},cat:"CAT 2",cite:"Serious (life-threatening) injury not due to MINDEF/SAF activity — CAT 2."},
+            {t:function(v){return v.hosp==="Yes";},cat:"CAT 3",cite:"Hospitalisation due to a service-related injury (or hospitalisation of a senior officer / senior WOSE) — CAT 3."},
+            {t:function(v){return v.life==="No"&&v.saf==="Yes";},cat:"CAT 2",cite:"Serious (non-life-threatening) injury due to MINDEF/SAF activity — CAT 2."},
+            {t:function(v){return v.life==="No"&&v.saf==="No";},cat:"CAT 3",cite:"Serious (non-life-threatening) injury not due to MINDEF/SAF activity — CAT 3."}],
+     def:{cat:"CAT 3",cite:"All service-related and senior-officer hospitalisations are reportable as CAT 3."}},
+   "Personnel missing":{det:[{id:"ctx",label:"During training/ops where serious injury or death is probable?",kind:"yn"}],
+     rules:[{t:function(v){return v.ctx==="Yes";},cat:"CAT 1",cite:"Personnel missing during training/ops where serious injury or death is probable — CAT 1."}],
+     def:{cat:"REVIEW",cite:"Refer to GSOC — only the CAT 1 condition is specified for missing personnel."}},
+   "AWOL (absent without leave)":{det:[{id:"wpn",label:"With firearms / explosives / ammunition?",kind:"yn"},{id:"five",label:"5 or more personnel?",kind:"yn"}],
+     rules:[{t:function(v){return v.wpn==="Yes";},cat:"CAT 1",cite:"AWOL with firearms, explosives & ammunition — CAT 1."},
+            {t:function(v){return v.wpn==="No"&&v.five==="Yes";},cat:"CAT 2",cite:"AWOL of 5 or more personnel without firearms/explosives/ammunition — CAT 2."}],
+     def:{cat:"REVIEW",cite:"Single AWOL without weapons is not specified in CAT 1–3 — refer to GSOC."}},
+   "Escape from custody":{det:[{id:"wpn",label:"With firearms / explosives / ammunition?",kind:"yn"}],
+     rules:[{t:function(v){return v.wpn==="Yes";},cat:"CAT 1",cite:"Escape from custody with firearms, explosives & ammunition — CAT 1."},
+            {t:function(v){return v.wpn==="No";},cat:"CAT 2",cite:"Escape from custody without firearms/explosives/ammunition — CAT 2."}]},
+   "Attempted suicide / self-harm / overdose":{det:[{id:"out",label:"Outcome",kind:"sel",opts:["Self-harm / overdose, not life-threatening","Death or life-threatening injuries"]}],
+     rules:[{t:function(v){return v.out.indexOf("Death")===0;},cat:"CAT 2",cite:"Attempted/suspected suicide, self-harm or overdose resulting in death or life-threatening injuries — CAT 2."},
+            {t:function(v){return v.out.indexOf("Self-harm")===0;},cat:"CAT 3",cite:"Self-harm or overdose not resulting in life-threatening injuries — CAT 3."}]},
+   "Heli-casevac activation":{det:[{id:"actual",label:"Actual casualty evacuation?",kind:"yn"}],
+     rules:[{t:function(v){return v.actual==="Yes";},cat:"CAT 3",cite:"Activation of heli-casevac for actual casualty evacuation — CAT 3."}],
+     def:{cat:"REVIEW",cite:"Refer to GSOC if not an actual casualty evacuation."}},
+   "Referred to IMH / CMC":{det:[],rules:[],def:{cat:"FYI",cite:"Referral to IMH / CMC (incl. SAF referrals and self-admitted cases) — FYI."}},
+   "Sought Medical Attention at IMH / CMC":{det:[],rules:[],def:{cat:"FYI",cite:"Service personnel sought medical attention at IMH / CMC — FYI."}},
+   "Warded at IMH / CMC":{det:[],rules:[],def:{cat:"CAT 3",cite:"Service personnel warded at IMH / CMC — CAT 3."}},
+   "Disciplinary or civil offence":{det:[{id:"foreign",label:"Foreign military personnel (civil offence, arrested locally)?",kind:"yn"}],
+     rules:[{t:function(v){return v.foreign==="Yes";},cat:"CAT 4",cite:"Civil offence by foreign military personnel in Singapore (arrested by local authorities) — CAT 4 (may be circulated as CAT 2 depending on severity)."}],
+     def:{cat:"CAT 3",cite:"Potential court charge / civil-authority summons or investigation — CAT 3."}},
+   "Public complaint":{det:[],rules:[],def:{cat:"CAT 3",cite:"Public complaint (depending on nature; report cases concerning MINDEF/SAF image) — CAT 3."}},
+   "Contagious disease":{det:[{id:"sc",label:"Scenario",kind:"sel",opts:[
+       "Dengue / Malaria / Zika / TB — any single case","Bacterial meningitis — any case",
+       "HFMD — 2+ within 5 days, same unit","Viral conjunctivitis — 2+ within 24 hrs, same unit",
+       "Gastrointestinal — 10+ within 48 hrs, common source","Chickenpox — 2+ within 21 days, same unit",
+       "Highly pathogenic disease declared by BDFC"]}],
+     rules:[{t:function(v){return v.sc.indexOf("Highly pathogenic")===0;},cat:"CAT 2",cite:"Declaration by BDFC of a single case of highly pathogenic disease with epidemic/pandemic/death potential — CAT 2."}],
+     def:{cat:"CAT 3",cite:"Notifiable disease threshold met (per Table 3-1A-1 contagious-disease criteria) — CAT 3."}},
+   "Damage to public / private property":{det:[{id:"sev",label:"Severity",kind:"sel",opts:["Damage","Destruction / serious damage"]}],
+     rules:[{t:function(v){return v.sev.indexOf("Destruction")===0;},cat:"CAT 1",cite:"Destruction or serious damage to public/private property due to SAF activities — CAT 1."},
+            {t:function(v){return v.sev==="Damage";},cat:"CAT 2",cite:"Damage to public/private property due to SAF activities — CAT 2."}]},
+   "Damage to SAF property":{det:[{id:"crit",label:"Critical combat equipment / weapon / sensitive materiel / installation (Ops impact)?",kind:"yn"},
+                                  {id:"sev",label:"Severity",kind:"sel",opts:["Damage","Destruction / serious damage"]}],
+     rules:[{t:function(v){return v.crit==="Yes"&&v.sev.indexOf("Destruction")===0;},cat:"CAT 1",cite:"Destruction/serious damage to critical combat equipment/weapon/sensitive materiel/installation impacting Ops readiness — CAT 1."},
+            {t:function(v){return v.sev.indexOf("Destruction")===0;},cat:"CAT 2",cite:"Serious damage to SAF equipment/property (not CAT 1) impacting Ops readiness — CAT 2."},
+            {t:function(v){return v.sev==="Damage";},cat:"CAT 3",cite:"Damage to SAF equipment/property (not CAT 1/2) with Ops-readiness or safety implications — CAT 3."}]},
+   "Loss of SAF property":{det:[{id:"kind",label:"Item",kind:"sel",opts:["Controlled Equipment (CE)","Sensitive non-CE item"]}],
+     rules:[],def:{cat:"CAT 3",cite:"Loss of Controlled Equipment (any type/amount, in camp or public), and loss of sensitive non-CE items, are reportable — CAT 3."}},
+   "Theft / loss / discovery of ammunition":{det:[
+       {id:"wc",label:"Involves weapon / explosive / critical or classified combat equipment affecting Ops readiness or security?",kind:"yn"},
+       {id:"type",label:"Type",kind:"sel",opts:["Live ammunition","Blank ammunition / pyrotechnics","RAI"]},
+       {id:"loc",label:"Location",kind:"sel",opts:["In public","SAF camp / premises (excl. training areas)","SAF training areas"]},
+       {id:"cal",label:"Calibre",kind:"sel",opts:["9mm or smaller","Larger than 9mm"]},
+       {id:"amt",label:"Amount",kind:"sel",opts:["5 rounds or fewer / N.A.","More than 5 rounds"]}],
+     rules:[{t:function(v){return v.wc==="Yes";},cat:"CAT 1",cite:"Involves weapon/explosive/critical or classified combat equipment affecting Ops readiness or with security implications — CAT 1."},
+            {t:function(v){return v.type==="Live ammunition"&&v.loc==="In public";},cat:"CAT 2",cite:"Live ammunition (any type/amount) in public — CAT 2."},
+            {t:function(v){return v.type==="Live ammunition"&&v.loc.indexOf("camp")>0&&v.cal==="Larger than 9mm";},cat:"CAT 2",cite:"Live ammunition larger than 9mm (any amount) in SAF camp/premises — CAT 2."},
+            {t:function(v){return v.type==="Live ammunition"&&v.loc.indexOf("camp")>0&&v.amt==="More than 5 rounds";},cat:"CAT 2",cite:"Live ammunition 9mm or smaller, more than 5 rounds, in SAF camp/premises — CAT 2."},
+            {t:function(v){return v.type==="Live ammunition"&&v.loc.indexOf("camp")>0;},cat:"CAT 3",cite:"Live ammunition 9mm or smaller, 5 rounds or fewer, in SAF camp/premises — CAT 3."},
+            {t:function(v){return v.type==="Live ammunition"&&v.loc.indexOf("training")>0;},cat:"CAT 3",cite:"Live ammunition in SAF training areas (per CAT 3 thresholds) — CAT 3."},
+            {t:function(v){return v.type.indexOf("Blank")===0&&v.loc==="In public";},cat:"CAT 2",cite:"Blank ammunition / pyrotechnics (any type/amount) in public — CAT 2."},
+            {t:function(v){return v.type.indexOf("Blank")===0;},cat:"CAT 3",cite:"Blank ammunition / pyrotechnics in SAF camp/premises or training areas (per CAT 3 thresholds) — CAT 3."},
+            {t:function(v){return v.type==="RAI"&&v.loc==="In public";},cat:"CAT 3",cite:"RAI (any type/amount) in public — CAT 3."}],
+     def:{cat:"REVIEW",cite:"If discovered in a gazetted training area or during routine maintenance, no GSOC report is required — return to SAF Ammo Base. Otherwise refer to GSOC."}},
+   "Major power failure":{det:[{id:"fac",label:"Facility",kind:"sel",opts:["Critical / sensitive","Non-critical / sensitive"]},
+                               {id:"bk",label:"Backup state",kind:"sel",opts:["No grid & no generator backup","Grid down, standby generator functioning","Local failure (comms / network room)"]}],
+     rules:[{t:function(v){return v.fac.indexOf("Critical")===0&&v.bk.indexOf("No grid")===0;},cat:"CAT 1",cite:"Critical/sensitive facility — no power backup from grid or standby generators — CAT 1."},
+            {t:function(v){return v.fac.indexOf("Critical")===0&&v.bk.indexOf("Grid down")===0;},cat:"CAT 2",cite:"Critical/sensitive facility — grid down but standby generator functioning — CAT 2."},
+            {t:function(v){return v.fac.indexOf("Non-critical")===0&&v.bk.indexOf("No grid")===0;},cat:"CAT 2",cite:"Non-critical facility — no power from grid or standby generator — CAT 2."},
+            {t:function(v){return v.bk.indexOf("Local failure")===0;},cat:"CAT 3",cite:"Local power failure affecting communications and/or network room — CAT 3."}],
+     def:{cat:"REVIEW",cite:"Report any power failure for GSOC to consolidate."}},
+   "Disruption to utilities (water)":{det:[],rules:[],def:{cat:"CAT 3",cite:"Disruption to water supply affecting MINDEF/SAF base/camp operations — CAT 3."}},
+   "National security / defence / public-sensitivity":{det:[],rules:[],def:{cat:"CAT 1",cite:"Incident with political repercussions / serious or operational implications (e.g. attack or attempted attack on SAF property) — CAT 1."}},
+   "CBRE threat":{det:[],rules:[],def:{cat:"CAT 1",cite:"Confirmed detection of CBRE threat in any MINDEF/SAF camp/base/facility — CAT 1."}},
+   "Forced entry / intrusion":{det:[{id:"k",label:"Type",kind:"sel",opts:["Forced entry / intrusion (actual)","Attempted forced entry / intrusion"]}],
+     rules:[{t:function(v){return v.k.indexOf("Attempted")===0;},cat:"CAT 3",cite:"Attempted forced entry/intrusion by unauthorised personnel — CAT 3."},
+            {t:function(v){return v.k.indexOf("Forced")===0;},cat:"CAT 2",cite:"Forced entry/intrusion by unauthorised personnel into MINDEF/SAF premises — CAT 2."}]},
+   "Unauthorised persons in SAF installation":{det:[],rules:[],def:{cat:"CAT 3",cite:"Unauthorised persons in SAF installations/protected areas (incl. persons photographing installations) — CAT 3."}},
+   "Suspicious item / vehicle / bomb threat":{det:[{id:"imp",label:"Impact",kind:"sel",opts:["Base / camp lockdown activated","Cordon ops impacting public areas"]}],
+     rules:[{t:function(v){return v.imp.indexOf("Cordon")===0;},cat:"CAT 2",cite:"Suspicious item/vehicle/bomb threat with impact to public areas due to cordon operations — CAT 2."},
+            {t:function(v){return v.imp.indexOf("Base")===0;},cat:"CAT 3",cite:"Base/camp lockdown activated — CAT 3."}]},
+   "Breach of security (classified)":{det:[{id:"cls",label:"Classification",kind:"sel",opts:["Confidential and below","Secret","Top Secret"]}],
+     rules:[{t:function(v){return v.cls==="Top Secret";},cat:"CAT 1",cite:"Breach of security — Top Secret level classification — CAT 1."},
+            {t:function(v){return v.cls==="Secret";},cat:"CAT 2",cite:"Breach of security — Secret level classification — CAT 2."},
+            {t:function(v){return v.cls.indexOf("Confidential")===0;},cat:"CAT 3",cite:"Breach of security — Confidential and below classification — CAT 3."}]},
+   "UAS detection / sighting near camp":{det:[],rules:[],def:{cat:"CAT 3",cite:"Detection (Aeroscope) or physical sighting of UAS in proximity of / within MINDEF/SAF camps/bases/facilities — CAT 3."}},
+   "C4 incident":{det:[{id:"tier",label:"Impact tier (per CAT document descriptions)",kind:"sel",opts:["Minor impact (CAT 3 descriptions)","Adverse / crippling impact (CAT 2 descriptions)","Stoppage / severe impact (CAT 1 descriptions)"]}],
+     rules:[{t:function(v){return v.tier.indexOf("Stoppage")===0;},cat:"CAT 1",cite:"C4 — stoppage of HRC/HADR ops or MINDEF HQ C2, or severe image impact (CAT 1 descriptions)."},
+            {t:function(v){return v.tier.indexOf("Adverse")===0;},cat:"CAT 2",cite:"C4 — crippling of HRC/HADR ops or admin function, or adverse image impact (CAT 2 descriptions)."},
+            {t:function(v){return v.tier.indexOf("Minor")===0;},cat:"CAT 3",cite:"C4 — minor impact to ops/admin/image (CAT 3 descriptions)."}],
+     guide:"Select the tier matching the CAT document's C4 descriptions (system-failure % thresholds, MIJI, etc.)."},
+   "Cyber security incident":{det:[{id:"tier",label:"Impact tier",kind:"sel",opts:["Non-major disruption / outside defence sectors (CAT 3)","Major disruption to Confidential & below, or planned attack (CAT 2)","Major disruption to Secret & above, or imminent attack (CAT 1)"]}],
+     rules:[{t:function(v){return v.tier.indexOf("Major disruption to Secret")===0;},cat:"CAT 1",cite:"Cyber — major service disruption/compromise of Secret-and-above system, or credible imminent attack — CAT 1."},
+            {t:function(v){return v.tier.indexOf("Major disruption to Confidential")===0;},cat:"CAT 2",cite:"Cyber — major disruption/compromise of Confidential-and-below system, or credible planned attack — CAT 2."},
+            {t:function(v){return v.tier.indexOf("Non-major")===0;},cat:"CAT 3",cite:"Cyber — non-major disruption to any defence cluster / incident outside defence sectors — CAT 3."}]},
+   "Technology security incident":{det:[{id:"tier",label:"Nature",kind:"sel",opts:["Contravention of special provisions (CAT 3)","Contravention: change in end-use / approved destination (CAT 2)","Unauthorised access / transfer without source-country approval (CAT 1)"]}],
+     rules:[{t:function(v){return v.tier.indexOf("Unauthorised")===0;},cat:"CAT 1",cite:"Unauthorised access/transfer of technology or SAF equipment without source-country approval — CAT 1."},
+            {t:function(v){return v.tier.indexOf("Contravention: change")===0;},cat:"CAT 2",cite:"Contravention of obligations on change in end-use / approved destination — CAT 2."},
+            {t:function(v){return v.tier.indexOf("Contravention of special")===0;},cat:"CAT 3",cite:"Contravention of special provisions — CAT 3."}]},
+   "Personal data breach":{det:[{id:"sev",label:"Severity",kind:"sel",opts:["Low","Medium","High","Severe","Very Severe"]}],
+     rules:[{t:function(v){return v.sev==="Very Severe"||v.sev==="Severe";},cat:"CAT 1",cite:"Personal data breach — Very Severe / Severe — CAT 1."},
+            {t:function(v){return v.sev==="High";},cat:"CAT 2",cite:"Personal data breach — High — CAT 2."},
+            {t:function(v){return v.sev==="Medium"||v.sev==="Low";},cat:"CAT 3",cite:"Personal data breach — Medium / Low — CAT 3."}]},
+   "Outbreak of fire":{det:[{id:"dmg",label:"Damage",kind:"sel",opts:["Any fire, no serious damage","Serious damage to SAF equipment (not CAT 1)","Destruction / serious damage to critical equipment (Ops impact)"]}],
+     rules:[{t:function(v){return v.dmg.indexOf("Destruction")===0;},cat:"CAT 1",cite:"Fire with destruction/serious damage to critical combat equipment/weapon/sensitive materiel/installation impacting Ops readiness — CAT 1."},
+            {t:function(v){return v.dmg.indexOf("Serious")===0;},cat:"CAT 2",cite:"Fire with serious damage to SAF equipment/property (not CAT 1) — CAT 2."},
+            {t:function(v){return v.dmg.indexOf("Any fire")===0;},cat:"CAT 3",cite:"Any fire outbreak with no serious damage (DECAM activations reportable, incl. false alarms) — CAT 3."}]},
+   "UAV airspace infringement":{det:[{id:"sc",label:"Scenario",kind:"sel",opts:["Out of assigned AO / no airspace allocated (potential only)","Safety implications with manned assets, or within 5km aerodrome / restricted airspace"]}],
+     rules:[{t:function(v){return v.sc.indexOf("Safety")===0;},cat:"CAT 3",cite:"UAV with safety implications re: manned assets, or flying within 5km aerodrome / restricted airspace without allocation — CAT 3."},
+            {t:function(v){return v.sc.indexOf("Out of")===0;},cat:"NEAR MISS",cite:"UAV out of assigned AO / no airspace allocated, with potential safety implications — filed as Near Miss."}]},
+   "Organisation-reputational incident":{det:[],rules:[],def:{cat:"REVIEW",cite:"No defined parameters for organisation-reputational incidents — consult GSOC (e.g. service personnel in uniform involved in a public incident, irresponsible social-media posts)."}},
+   "Non-SAF related incident (CAT 4)":{det:[{id:"k",label:"Type",kind:"sel",opts:[
+       "Civil offence by foreign military personnel","Explosion at public facility adjacent to SAF installation",
+       "Event requiring MINDEF/SAF support (drowning, war relic, CBRE, etc.)","Event with potential media interest affecting SAF image",
+       "Non-SAF C4 incident with implications on SAF","Non-defence-sector incident with implications on SAF"]}],
+     rules:[],def:{cat:"CAT 4",cite:"Non-SAF-related incident with implications on, or assistance required from, the SAF (Table 3-1A-2) — CAT 4."}}
+  };
+
+  function detVal(id){var el=document.querySelector('#determinants [data-det="'+id+'"]');return el?el.value:"";}
+  function renderDeterminants(type){
+    var R=SAF_RULES[type], box=$("determinants"), wrap=$("determBlock"), guide=$("determGuide");
+    box.innerHTML="";
+    if(!R||(!R.det||!R.det.length)){
+      wrap.style.display=(R&&R.det&&R.det.length)?"block":"none";
+      if(R&&R.guide){guide.style.display="block";guide.textContent=R.guide;}else{guide.style.display="none";}
+      if(!R||!R.det||!R.det.length){wrap.style.display="none";}
+      return;
+    }
+    wrap.style.display="block";
+    R.det.forEach(function(d){
+      var row=document.createElement("label");row.className="fld";row.style.marginBottom="12px";row.style.display="flex";row.style.flexDirection="column";row.style.gap="6px";
+      var lab=document.createElement("span");lab.className="lab";lab.textContent=d.label;
+      var sel=document.createElement("select");sel.setAttribute("data-det",d.id);
+      var opts=(d.kind==="yn")?["No","Yes"]:d.opts;
+      opts.forEach(function(o){var op=document.createElement("option");op.textContent=o;sel.appendChild(op);});
+      sel.addEventListener("change",render);
+      row.appendChild(lab);row.appendChild(sel);box.appendChild(row);
+    });
+    if(R.guide){guide.style.display="block";guide.textContent=R.guide;}else{guide.style.display="none";}
+  }
+
+  function evaluate(type){
+    var R=SAF_RULES[type];if(!R)return null;
+    var v={};(R.det||[]).forEach(function(d){v[d.id]=detVal(d.id);});
+    for(var i=0;i<R.rules.length;i++){try{if(R.rules[i].t(v))return{cat:R.rules[i].cat,cite:R.rules[i].cite};}catch(e){}}
+    return R.def||{cat:"REVIEW",cite:"Criteria not uniquely met — refer to GSOC."};
+  }
+
+  function classify(){
+    var nat=$("nature").value;
+    if(tog("out")==="outNear")return{cat:"NEAR MISS",why:"Outcome assessed as a Near Miss — no injury, illness or damage occurred but had the potential to do so (Table 3-1-1)."};
+    if(!nat)return{cat:"REVIEW",why:"Select an incident type to apply the SAF incident-category criteria."};
+    if(nat==="Other")return{cat:"REVIEW",why:"Free-text incident type — refer to GSOC for categorisation."};
+    var r=evaluate(nat);
+    if(!r)return{cat:"REVIEW",why:"No rule set for this type — refer to GSOC."};
+    return{cat:r.cat,why:r.cite};
+  }
+
+  function natureText(){var n=$("nature").value;if(n==="Other")return $("natureOther").value.trim()||"OTHER (unspecified)";return n||"—";}
+
+  function setVal(id,val){var el=$(id);if(val&&String(val).trim()!==""){el.textContent=val;el.classList.remove("empty");}else{el.textContent="—";el.classList.add("empty");}}
+
+  function yn(name,yesId){return tog(name)===yesId?"YES":"NO";}
+
+  function involvedText(){
+    var arr=readInvolved();
+    if(!arr.length)return "";
+    return arr.map(function(p,i){
+      var parts=[p.rank?p.rank.toUpperCase():"",p.name].filter(Boolean).join(" ");
+      var tail=[p.unit?p.unit.toUpperCase():"",p.con].filter(Boolean).join(" · ");
+      return (i+1)+". "+(parts||"(unnamed)")+(tail?(" — "+tail):"");
+    }).join("\n");
+  }
+
+  function recommendations(cat){
+    var rec=[];
+    var nat=$("nature").value;
+    if(cat==="CAT 1"){rec.push("Notify GSOC immediately by verbal report; written report to follow.");rec.push("Inform chain of command and higher formation without delay.");}
+    else if(cat==="CAT 2"){rec.push("Report to GSOC; initiate unit investigation.");}
+    else if(cat==="CAT 3"){rec.push("Submit incident report via ESIS; record in unit incident log.");}
+    else if(cat==="CAT 4"){rec.push("Report for awareness; coordinate SAF assistance / liaison with the external agency as required.");}
+    else if(cat==="NEAR MISS"){rec.push("Log as Near Miss; capture contributing factors for trend analysis.");}
+    else{rec.push("Refer to GSOC to confirm the category before reporting — GSOC is the final authority.");}
+    if(nat==="Theft / loss / discovery of ammunition")rec.push("Notify SAF Ammo Base / EOD; cordon and control per standing orders. If found in a gazetted training area, return without GSOC report.");
+    if(nat==="Attempted suicide / self-harm / overdose")rec.push("Inform medical and welfare chain; safeguard the individual.");
+    if(nat==="Forced entry / intrusion"||nat==="Unauthorised persons in SAF installation")rec.push("Notify guard force / security; preserve CCTV and evidence.");
+    if(nat==="Breach of security (classified)")rec.push("Initiate security-breach procedure; account for classified material.");
+    if(nat==="Personal data breach")rec.push("Notify GSOC; DCTD Data Protection Office / Incident Response Team to be activated.");
+    if(nat==="Outbreak of fire")rec.push("DECAM activation reportable to GSOC (incl. false alarms); maintain fire-alarm occurrence log.");
+    return rec;
+  }
+
+  // report-type prefix keyed to the recommended category
+  var PREFIX={"CAT 1":"","CAT 2":"","CAT 3":"3IR:","CAT 4":"4IR:","NEAR MISS":"NMIR:","FYI":"FYI:","REVIEW":""};
+
+  function up(s){return String(s||"").toUpperCase();}
+  function nameCase(s){return (s||"").trim().split(/\s+/).map(function(w){return w?w.charAt(0).toUpperCase()+w.slice(1).toLowerCase():w;}).join(" ");}
+  function lcFirst(s){s=(s||"").trim();return s?s.charAt(0).toLowerCase()+s.slice(1):s;}
+  function stripDot(s){return (s||"").trim().replace(/[.\s]+$/,"");}
+  function subjectShort(){
+    var arr=readInvolved();
+    return arr.length ? personStr(arr[0]) : "XXXX [XXXX] (XXXX)";
+  }
+  function qualifier(nat){
+    if(tog("out")==="outNear")return "(No Injuries to Personnel) ";
+    if(nat==="Hospitalisation"||nat==="Death"){var saf=detVal("saf");if(saf==="Yes")return "(Service Related) ";if(saf==="No")return "(Non-SAF Related) ";}
+    return "";
+  }
+  // auto-suggested incident-title (no subject) used only if the Title field is blank
+  function headingTitle(nat){
+    if(!nat||nat==="—")return "[XXXX – title of incident]";
+    var map={
+      "Death":"Demise","Hospitalisation":"Hospitalisation","Referred to IMH / CMC":"Referred to IMH / CMC",
+      "Sought Medical Attention at IMH / CMC":"Sought Medical Attention at IMH / CMC","Warded at IMH / CMC":"Warded at IMH / CMC",
+      "Outbreak of fire":"Outbreak of Fire","Theft / loss / discovery of ammunition":"Discovery / Loss of Ammunition",
+      "Breach of security (classified)":"Discovery / Loss of Classified Material","Loss of SAF property":"Loss of SAF Equipment",
+      "Forced entry / intrusion":"Intrusion"
+    };
+    return map[nat] || titleCase(nat.replace(/\s*\(.*\)/,""));
+  }
+
+  // category number used in the case-number reference
+  var CATNUM={"CAT 1":"1","CAT 2":"2","CAT 3":"3","CAT 4":"4","NEAR MISS":"NM","FYI":"F","REVIEW":"X"};
+  function yy(){var raw=$("dtg").value,d=raw?new Date(raw):new Date();if(isNaN(d.getTime()))d=new Date();return String(d.getFullYear()).slice(-2);}
+  function caseRef(shownCat){
+    if(shownCat==="FYI")return "[FYI]";
+    var key=$("caseNo").value.trim()||"XXXX", cn=CATNUM[shownCat]||"X", y=yy();
+    return (shownCat==="NEAR MISS") ? ("[NM/"+y+"/"+key+"]") : ("["+y+"/"+cn+"/"+key+"]");
+  }
+
+  /* ---- generator: build the structured IR from the officer's inputs ----
+     The system frames the house format (case-ref, report-type prefix, sections)
+     and marks blanks as XXXX. It does not infer prose. */
+  function buildNarrative(){
+    var nat=natureText();
+    var shownCat=$("vCat").textContent, result=classify();
+    var prefix=PREFIX[shownCat]||"";
+    var dtgP=readableDTG()||"XX XXXXH XXX XX";
+
+    var unit=up($("rptUnit").value.trim())||up($("rpUnit").value.trim())||"XXXX";
+    var what=$("what").value.trim();
+    var where=$("where").value.trim();
+    var why=$("why").value.trim(), how=$("how").value.trim();
+    var curStatus=$("curStatus").value.trim();
+    var nok=$("nok").value;            // "", "Yes", "No"
+    var account=$("account").value.trim();
+    var note=$("note").value.trim();
+
+    // POC descriptor (single set of fields); unit always upper-cased
+    function person(prefix){
+      var svc=$(prefix+"Svc").value.trim(), rank=$(prefix+"Rank").value.trim(),
+          name=$(prefix+"Name").value.trim(), un=$(prefix+"Unit").value.trim();
+      if(noRankSvc(svc))rank="";
+      var head=[svc, rank?up(rank):"", nameCase(name)].filter(Boolean).join(" ");
+      var s=head+(un?(" ("+up(un)+")"):"");
+      return {text:s.trim(), has:!!(rank||name||un)};
+    }
+
+    // join a list naturally: "A", "A and B", "A, B and C"
+    function joinList(a){
+      if(a.length<=1)return a[0]||"";
+      if(a.length===2)return a[0]+" and "+a[1];
+      return a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+    }
+
+    // HEADING descriptor: "{ServiceType} [{RANK} {Name}] ({UNIT})" — rank+name bracketed
+    function personHead(o){
+      var rn=[o.rank?up(o.rank):"", nameCase(o.name)].filter(Boolean).join(" ");
+      var arr=[];
+      if(o.svc)arr.push(o.svc);
+      arr.push(rn?("["+rn+"]"):"[XXXX]");
+      if(o.unit)arr.push("("+up(o.unit)+")");
+      return arr.join(" ");
+    }
+    // BODY generic noun — name is not used in the description
+    function bodyNoun(){
+      var arr=readInvolved();
+      var plural=arr.length>1;
+      if(!arr.length)return "service personnel";
+      var svc=arr[0].svc;
+      if(/^Civilian Contractor/i.test(svc))return plural?"the civilian contractors":"a civilian contractor";
+      if(/^Civilian/i.test(svc))return plural?"the civilians":"a civilian";
+      if(svc==="DXO")return plural?"the DXOs":"a DXO";
+      return "service personnel";
+    }
+
+    var involvedArr=readInvolved();
+
+    // HEADING: [ref] XIR: (qualifier) {personnel} {title of incident}
+    var whoHead=involvedArr.length ? joinList(involvedArr.map(personHead)) : "[XXXX – service type, rank, name, unit]";
+    var titleOfIncident=$("title").value.trim() || headingTitle(nat);
+    var q=qualifier(nat).trim();
+    var heading=caseRef(shownCat)+" "+(prefix?(prefix+" "):"")+(q?(q+" "):"")+whoHead+" "+titleOfIncident;
+
+    // 1 · Summary of Incident — first mention names the personnel (rank, name, unit)
+    var subj=involvedArr.length ? joinList(involvedArr.map(personStr)) : "[XXXX – service type, rank, name, unit]";
+    var core=subj+" "+(what||"[XXXX – what happened]")+(where?(" at "+where):"")
+      +(how?(", "+lcFirst(stripDot(how))):"");
+    var summaryBody=("On "+dtgP+", "+unit+" informed GSOC that "+core).replace(/[.\s]+$/,"")+".";
+    if(why)summaryBody+=" This was attributed to "+lcFirst(stripDot(why))+".";
+
+    // 2 · Current status of the incident — paragraph; N/A items omitted
+    var statusBits=[];
+    statusBits.push(curStatus?sent(curStatus):"[XXXX – current status of the incident].");
+    if(nok==="Yes")statusBits.push("NOK was informed.");
+    else if(nok==="No")statusBits.push("NOK has not been informed.");
+    var pocP=person("poc"); var pocPhone=$("pocPhone").value.trim();
+    if(pocP.has||pocPhone){
+      var pocStr=pocP.text+(pocPhone?(pocP.text?", ":"")+pocPhone:"");
+      statusBits.push("The POC / representative accompanying service personnel is "+pocStr+".");
+    }
+    var statusBody=statusBits.join(" ");
+
+    // 3 · Account of events — omitted entirely if nothing was entered
+    var accountBody = account
+      ? ("According to the unit, "+leadIn(splitSentences(account).map(sent).join(" "))+".")
+      : "";
+
+    var paras=[summaryBody, statusBody];
+    if(accountBody) paras.push(accountBody);
+    if(note) paras.push("Special note: "+sent(note));
+
+    var seenEG={};
+    paras=paras.map(function(p){return egExpand(p,seenEG);});
+
+    return {heading:egExpand(heading,seenEG), paras:paras,
+            match:matchTemplate(),
+            analysis:{cat:result.cat, cite:result.why, shownCat:shownCat}};
+  }
+
+  var IMPACT_MEANING={
+    "CAT 1":"A high-impact incident on the SAF's operational readiness and/or reputation (Table 3-1-1).",
+    "CAT 2":"A medium-impact incident on the SAF's operational readiness and/or reputation (Table 3-1-1).",
+    "CAT 3":"A low-impact incident on the SAF's operational readiness and/or reputation (Table 3-1-1).",
+    "CAT 4":"A non-SAF-related incident that may have implications on the SAF, or where SAF assistance may be required (Table 3-1-1 / Table 3-1A-2).",
+    "NEAR MISS":"An incident that did not result in injury, illness or damage but had the potential to do so (Table 3-1-1).",
+    "FYI":"An incident reported to GSOC for information.",
+    "REVIEW":"The categorisation criteria are not uniquely met for this combination — GSOC to confirm the category."
+  };
+  var DOMAINS=[
+    ["Personnel-Related Incidents",["Death","Hospitalisation","Personnel missing","AWOL (absent without leave)","Escape from custody","Attempted suicide / self-harm / overdose","Heli-casevac activation","Referred to IMH / CMC","Sought Medical Attention at IMH / CMC","Warded at IMH / CMC","Disciplinary or civil offence","Public complaint","Contagious disease"]],
+    ["Materiel-Related Incidents",["Damage to public / private property","Damage to SAF property","Loss of SAF property","Theft / loss / discovery of ammunition","Major power failure","Disruption to utilities (water)"]],
+    ["Security-Related Incidents",["National security / defence / public-sensitivity","CBRE threat","Forced entry / intrusion","Unauthorised persons in SAF installation","Suspicious item / vehicle / bomb threat","Breach of security (classified)","UAS detection / sighting near camp"]],
+    ["C4 Incidents",["C4 incident"]],
+    ["Cyber Incidents",["Cyber security incident"]],
+    ["Technology Security Incident",["Technology security incident"]],
+    ["Personal Data Breach Incidents",["Personal data breach"]],
+    ["Others",["Outbreak of fire","UAV airspace infringement","Organisation-reputational incident"]]
+  ];
+  function tableRef(nat,recCat){
+    if(nat==="Non-SAF related incident (CAT 4)"||recCat==="CAT 4")return "Table 3-1A-2 — Category 4 Incidents";
+    var dom="";for(var i=0;i<DOMAINS.length;i++){if(DOMAINS[i][1].indexOf(nat)>=0){dom=DOMAINS[i][0];break;}}
+    if(dom)return "Table 3-1A-1 — "+dom;
+    if(recCat==="NEAR MISS")return "Table 3-1-1 — Near Miss definition";
+    return "Table 3-1-1 — Categories of Incidents";
+  }
+
+  function render(){
+    applyConditionals();
+    var result=classify();
+    var ov=$("override").value;
+    var cat=(ov==="AUTO")?result.cat:ov;
+    var cfg=CFG[cat];
+
+    $("vCat").textContent=cat;
+    $("vBar").style.background=cfg.color;
+    var chip=$("vChip");chip.textContent=cfg.impact;chip.style.color=cfg.color;
+
+    var rec=result.cat, recCfg=CFG[rec]||CFG.REVIEW;
+    var cond=result.why.replace(/\s*[—-]\s*CAT\s*[1-4]\.?\s*$/i,".").replace(/\s+/g," ").trim();
+    if(!/[.!?]$/.test(cond))cond+=".";
+    var natv=$("nature").value;
+    var html="";
+    if(ov!=="AUTO" && cat!==rec){
+      html+="<b>Manual override.</b> The system recommends <b>"+rec+"</b>; the officer has set this report to <b>"+cat+"</b>.<br><br>";
+    }
+    html+="<b>Recommended: "+rec+" ("+recCfg.impact+").</b> "+(IMPACT_MEANING[rec]||"")+"<br>";
+    html+="<b>Why:</b> this incident meets the condition — "+esc(cond);
+    $("vWhy").innerHTML=html;
+    $("vTime").textContent="Refer to GSOC.";
+
+    var nat=$("nature").value;
+    var sensitive=["Theft / loss / discovery of ammunition","Breach of security (classified)","National security / defence / public-sensitivity","CBRE threat","Technology security incident","Personal data breach","Cyber security incident"].indexOf(nat)>=0;
+    var classMark=sensitive?"OFFICIAL-SENSITIVE  (verify marking)":"UNCLASSIFIED";
+
+    var rp=[up($("rpRank").value.trim()),$("rpName").value.trim()].filter(Boolean).join(" ")||"—";
+    var rpTail=[up($("rpUnit").value.trim()),$("rpContact").value.trim()].filter(Boolean).join(" · ");
+    var foot="REPORTING PERSONNEL: "+rp+(rpTail?(" — "+rpTail):"");
+
+    // generated IR (flowing paragraphs) — skip rebuild while the user is hand-editing
+    var nar=buildNarrative();
+    if(!irEditing){
+      $("irHeading").textContent=nar.heading;
+      var nb=$("nBody");nb.innerHTML="";
+      nar.paras.forEach(function(t){if(t){var p=document.createElement("p");p.textContent=t;nb.appendChild(p);}});
+      $("nClass").textContent=classMark;
+      $("nFoot").textContent=foot;
+    }
+
+    // matched reference template from the SMS library
+    var rb=$("refBody"), rl=$("refLabel");
+    if(nar.match){
+      rl.textContent="Matched reference template — "+nar.match.tpl.ty+" ("+nar.match.tpl.s+")";
+      rb.innerHTML="";
+      var meta=document.createElement("div");meta.className="ref-meta";
+      meta.innerHTML="<b>Source:</b> SMS library · "+esc(nar.match.tpl.s)+" › "+esc(nar.match.tpl.ty)+" — use as a phrasing reference; fill any XXXX in the draft above.";
+      var txt=document.createElement("div");txt.className="ref-text";txt.textContent=nar.match.tpl.tx;
+      rb.appendChild(meta);rb.appendChild(txt);
+    }else{
+      rl.textContent="Matched reference template — none found";
+      rb.innerHTML='<div class="ref-empty">No close match in the SMS library yet. Add more detail or pick a more specific incident type.</div>';
+    }
+  }
+
+  /* ---- reference template toggle ---- */
+  $("refToggle").addEventListener("click",function(){
+    var open=$("refBody").classList.toggle("on");
+    $("refChevron").textContent=open?"▴":"▾";
+  });
+
+  /* ---- manual edit mode for the generated IR ---- */
+  var irEditing=false;
+  $("editBtn").addEventListener("click",function(){
+    irEditing=!irEditing;
+    var paper=$("narrativePaper");
+    [$("irHeading"),$("nBody")].forEach(function(el){el.contentEditable=irEditing?"true":"false";});
+    paper.classList.toggle("editing",irEditing);
+    this.textContent=irEditing?"Done":"Edit";
+    if(irEditing)$("irHeading").focus();
+  });
+
+  function narrativePlain(){
+    var out=[$("nClass").textContent,"",$("irHeading").textContent,""];
+    $("nBody").querySelectorAll("p").forEach(function(p){out.push(p.textContent);out.push("");});
+    out.push("------------------------------------------------------------");
+    out.push($("nFoot").textContent);
+    return out.join("\n");
+  }
+  $("copyBtn").addEventListener("click",function(){
+    var btn=this,txt=narrativePlain();
+    var done=function(){btn.textContent="Copied ✓";btn.classList.add("done");setTimeout(function(){btn.textContent="Copy report";btn.classList.remove("done");},1600);};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done).catch(function(){fallback(txt);done();});
+    else{fallback(txt);done();}
+  });
+  function fallback(txt){var ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);}
+
+  /* ============================================================
+     DATA STORE  (browser-local; falls back to memory in sandbox)
+     ============================================================ */
+  var STORE_KEY="ir_incidents_v1";
+  var store=[];
+  function loadStore(){
+    try{var raw=window.localStorage.getItem(STORE_KEY);if(raw){store=JSON.parse(raw);return;}}catch(e){}
+    store=seedData();saveStore();
+  }
+  function saveStore(){try{window.localStorage.setItem(STORE_KEY,JSON.stringify(store));}catch(e){}}
+
+  function daysAgo(n,h){var d=new Date();d.setDate(d.getDate()-n);if(h!=null)d.setHours(h,0,0,0);return d.toISOString();}
+  function seedData(){
+    var S=function(dc,d,sev,st,nat,loc,who,sum){return {id:"S"+(seedN++),dtg:daysAgo(d[0],d[1]),dashCat:dc,cat:sev,status:(st==="In progress"?"Open":st),nature:nat,loc:loc,who:who,summary:sum,recs:[],updates:[]};};
+    var seedN=1;
+    return [
+      // Referred to IMH / CMC
+      S("Referred to IMH / CMC",[1,9],"FYI","Open","Referred to IMH / CMC","Maju Camp","NSF Enlistee REC Tan (3 SIR)","Self-referred via SAF Counselling Hotline; referred to IMH."),
+      S("Referred to IMH / CMC",[5,14],"FYI","Closed","Sought Medical Attention at IMH / CMC","Nee Soon Camp","NSF Specialist 3SG Lim (BMTC)","Sought medical attention at CMC for psychological stress."),
+      S("Referred to IMH / CMC",[11,10],"CAT 3","Closed","Warded at IMH / CMC","Kranji Camp","NSF Enlistee REC Ng (1 GDS)","Warded at IMH for observation."),
+      S("Referred to IMH / CMC",[26,16],"FYI","Closed","Referred to IMH / CMC","Selarang Camp","Regular Specialist 3SG Goh (9 SIR)","Command-referred following counselling."),
+      // Civil Cases
+      S("Civil Cases",[3,13],"CAT 3","In progress","Disciplinary or civil offence","Off-base","NSF Officer LTA Wong (Army)","Civil case — pending police outcome."),
+      S("Civil Cases",[18,11],"CAT 3","Closed","Public complaint","Main gate","Guard force","Public complaint regarding gate conduct."),
+      S("Civil Cases",[40,15],"CAT 2","Closed","Disciplinary or civil offence","Off-base","Regular Specialist 1SG Sani (Army)","Civil offence — charged in court."),
+      // Discovery / Loss of Controlled Equipment
+      S("Discovery / Loss of Controlled Equipment",[7,8],"CAT 3","Open","Loss of SAF property","Tekong","NSF Enlistee REC Goh (BMTC)","Loss of controlled equipment (NVG); board convened."),
+      S("Discovery / Loss of Controlled Equipment",[33,12],"CAT 2","Closed","Loss of SAF property","Stagmont","Regular Officer CPT Lee (Signals)","Loss of controlled comms equipment."),
+      // Heat-related Injuries
+      S("Heat-related Injuries",[6,11],"CAT 2","Closed","Hospitalisation","Gymnasium","NSF Enlistee REC Abu (3 SIR)","Heat injury during PT; conveyed to hospital and recovered.",true),
+      S("Heat-related Injuries",[21,13],"CAT 3","Closed","Hospitalisation","Training shed","NSF Specialist 3SG Raja (1 GDS)","Suspected heat exhaustion; outpatient treatment.",true),
+      S("Heat-related Injuries",[58,10],"CAT 1","Closed","Hospitalisation","Range 4","Regular Specialist 2SG Chua (9 SIR)","Serious heat injury; ICU admission.",true),
+      // Hospitalisation
+      S("Hospitalisation",[2,9],"CAT 3","Open","Hospitalisation","Obstacle course","NSF Enlistee REC Lim (1 Inf)","Twisted ankle during obstacle course."),
+      S("Hospitalisation",[14,12],"CAT 3","Closed","Hospitalisation","Sports field","NSF Specialist 3SG Wong (2 Sup)","Sprain during inter-coy match."),
+      S("Hospitalisation",[44,10],"CAT 1","Closed","Hospitalisation","Live range 7","Regular Specialist 1SG Abu (Army)","Serious hand injury during stoppage drill."),
+      // POV(M) Incidents
+      S("POV(M) Incidents",[9,16],"CAT 4","Closed","Others","PIE","NSF Officer LTA Tan (Army)","POV(M) accident off-duty; personnel uninjured."),
+      S("POV(M) Incidents",[29,7],"CAT 2","Closed","Others","TPE","Regular Specialist 3SG Goh (Army)","POV motorcycle accident; serviceman hospitalised."),
+      S("POV(M) Incidents",[70,18],"CAT 4","Closed","Others","SLE","NSF Enlistee REC Sani (BMTC)","POV(M) collision; minor injuries."),
+      // Stolen, loss or discovery of ammunition
+      S("Stolen, loss or discovery of ammunition",[12,15],"CAT 2","In progress","Theft / loss / discovery of ammunition","Range 9","RCO (SAFTI)","Live round unaccounted after range; 100% check ongoing."),
+      S("Stolen, loss or discovery of ammunition",[50,13],"CAT 3","Closed","Theft / loss / discovery of ammunition","Range 7","RCO (9 SIR)","Discovery of stray round during sweep."),
+      // Munition related incidents
+      S("Munition related incidents",[16,22],"CAT 2","Closed","Others","Range 9","RCO (Arty)","Misfired round recovered and made safe by EOD."),
+      S("Munition related incidents",[62,14],"NEAR MISS","Closed","Others","Demolition range","Engineer det","Detonator handling near-miss; no injuries."),
+      // Military vehicle incidents
+      S("Military vehicle incidents",[8,16],"CAT 3","Closed","Others","MSR north gate","Veh 31 crew","Minor collision reversing military vehicle; no injuries."),
+      S("Military vehicle incidents",[24,2],"CAT 2","Closed","Others","MT Line","MT crew","Military vehicle engine-bay fire; extinguished."),
+      S("Military vehicle incidents",[90,11],"NEAR MISS","Closed","Others","Training area","Driver (3 SIR)","Near rollover on slope; controlled, no injuries."),
+      // Others
+      S("Others",[15,22],"CAT 2","In progress","Forced entry / intrusion","Perimeter sector 3","Guard force","Unidentified drone observed over compound."),
+      S("Others",[48,3],"CAT 3","Closed","Outbreak of fire","Fuel point","POL det","Minor diesel spill ignition risk; contained."),
+      S("Others",[110,12],"CAT 4","Closed","Personal data breach","HQ","Admin","Personal data exposure; assessed and contained.")
+    ];
+  }
+
+  var CAT_COLOR={"FYI":"#5a8f6b","CAT 1":"#c2362f","CAT 2":"#d97a28","CAT 3":"#d8b13a","CAT 4":"#3d83a3","NEAR MISS":"#6b7884","REVIEW":"#8a93a0"};
+
+  // dashboard incident categories (Overview) and the severities tracked
+  var DASH_CATS=["Referred to IMH / CMC","Civil Cases","Discovery / Loss of Controlled Equipment",
+    "Heat-related Injuries","Hospitalisation","POV(M) Incidents","Stolen, loss or discovery of ammunition",
+    "Munition related incidents","Military vehicle incidents","Others"];
+  var SEV_ORDER=["FYI","CAT 1","CAT 2","CAT 3","CAT 4","NEAR MISS"];
+
+  // map a raw incident type to one of the 10 dashboard categories
+  function dashCatOf(nature, heat){
+    var n=nature||"";
+    if(/IMH|CMC/i.test(n))return "Referred to IMH / CMC";
+    if(n==="Disciplinary or civil offence"||n==="Public complaint")return "Civil Cases";
+    if(n==="Loss of SAF property"||n==="Damage to SAF property"||n==="Breach of security (classified)")return "Discovery / Loss of Controlled Equipment";
+    if(n==="Hospitalisation"&&heat)return "Heat-related Injuries";
+    if(n==="Hospitalisation"||n==="Heli-casevac activation")return "Hospitalisation";
+    if(n==="Theft / loss / discovery of ammunition")return "Stolen, loss or discovery of ammunition";
+    return "Others";
+  }
+  // every incident carries a dashCat; compute if missing
+  function catOfInc(i){return i.dashCat||dashCatOf(i.nature,i.heat);}
+
+  /* ============================================================
+     TABS
+     ============================================================ */
+  function showTab(name){
+    ["overview","file","manage"].forEach(function(t){
+      $("tab-"+t).classList.toggle("on",t===name);
+    });
+    $("navOverview").classList.toggle("on",name==="overview");
+    $("navFile").classList.toggle("on",name==="file");
+    $("navManage").classList.toggle("on",name==="manage");
+    if(name==="overview")renderDash();
+    if(name==="manage")renderManage();
+  }
+  $("navOverview").addEventListener("click",function(){showTab("overview");});
+  $("navFile").addEventListener("click",function(){showTab("file");});
+  $("navManage").addEventListener("click",function(){showTab("manage");});
+
+  /* ============================================================
+     DASHBOARD
+     ============================================================ */
+  var rangeDays=30;
+  var dashFrom=null, dashTo=null;          // custom range (ms) — overrides pills when set
+  function customActive(){return dashFrom!=null||dashTo!=null;}
+  function inRange(iso){
+    var t=new Date(iso).getTime();
+    if(customActive()){
+      if(dashFrom!=null&&t<dashFrom)return false;
+      if(dashTo!=null&&t>dashTo)return false;
+      return true;
+    }
+    return t>=Date.now()-rangeDays*86400000;
+  }
+  function filtered(){return store.filter(function(i){return inRange(i.dtg);});}
+
+  $("rangePills").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    rangeDays=parseInt(b.getAttribute("data-r"),10);
+    // selecting a preset clears any custom range
+    dashFrom=dashTo=null;$("dashFrom").value="";$("dashTo").value="";
+    Array.prototype.forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b);});
+    $("dashRange").textContent=rangeDays===7?"Past 7 days":rangeDays===30?"Past 30 days":"Past 12 months";
+    renderDash();
+  });
+
+  function applyDashDate(){
+    dashFrom=$("dashFrom").value?new Date($("dashFrom").value).getTime():null;
+    dashTo=$("dashTo").value?new Date($("dashTo").value).getTime():null;
+    if(customActive()){
+      Array.prototype.forEach.call($("rangePills").querySelectorAll("button"),function(x){x.classList.remove("on");});
+      var f=dashFrom?fmtDtg(new Date(dashFrom).toISOString()):"earliest", t=dashTo?fmtDtg(new Date(dashTo).toISOString()):"now";
+      $("dashRange").textContent="Custom · "+f+" → "+t;
+    }
+    renderDash();
+  }
+  $("dashFrom").addEventListener("change",applyDashDate);
+  $("dashTo").addEventListener("change",applyDashDate);
+  $("dashDateClear").addEventListener("click",function(){
+    dashFrom=dashTo=null;$("dashFrom").value="";$("dashTo").value="";
+    var def=$("#rangePills [data-r='30']")||$("rangePills").querySelector("[data-r='30']");
+    Array.prototype.forEach.call($("rangePills").querySelectorAll("button"),function(x){x.classList.toggle("on",x.getAttribute("data-r")==="30");});
+    rangeDays=30;$("dashRange").textContent="Past 30 days";
+    renderDash();
+  });
+
+  var othersOpen=false;
+  function renderDash(){
+    var data=filtered();
+    var cnt=function(c){return data.filter(function(i){return i.cat===c;}).length;};
+    $("stTotal").textContent=data.length;
+    $("stCat1").textContent=cnt("CAT 1");
+    $("stCat2").textContent=cnt("CAT 2");
+    $("stCat3").textContent=cnt("CAT 3");
+    $("stCat4").textContent=cnt("CAT 4");
+    $("stFyi").textContent=cnt("FYI");
+    $("stNear").textContent=cnt("NEAR MISS");
+    $("stOpen").textContent=data.filter(function(i){return i.status==="Open";}).length;
+    $("stClosed").textContent=data.filter(function(i){return i.status==="Closed";}).length;
+
+    // by dashboard category (fixed 10 buckets, always shown)
+    var byCat={};DASH_CATS.forEach(function(c){byCat[c]=0;});
+    var othersBreak={};
+    data.forEach(function(i){var c=catOfInc(i);if(byCat[c]==null)c="Others";byCat[c]++;
+      if(c==="Others"){var k=(i.nature||"Unspecified").replace(/\s*\(.*\)/,"");othersBreak[k]=(othersBreak[k]||0)+1;}});
+    var max=DASH_CATS.reduce(function(m,c){return Math.max(m,byCat[c]);},0)||1;
+    var nb=$("catBars");nb.innerHTML="";
+    DASH_CATS.forEach(function(c){
+      var n=byCat[c], isOthers=(c==="Others");
+      var row=document.createElement("div");row.className="hbar"+(isOthers?" clickable"+(othersOpen?" open":""):"");
+      row.innerHTML='<div class="hl" title="'+esc(c)+'">'+esc(c)+'</div><div class="ht"><div class="hf" style="width:'+(n/max*100)+'%"></div></div><div class="hn">'+n+'</div>';
+      nb.appendChild(row);
+      if(isOthers){
+        row.addEventListener("click",function(){othersOpen=!othersOpen;renderDash();});
+        if(othersOpen){
+          var sb=document.createElement("div");sb.className="sub-break";
+          var keys=Object.keys(othersBreak).sort(function(a,b){return othersBreak[b]-othersBreak[a];});
+          if(!keys.length){sb.innerHTML='<div class="sb-empty">No "Others" incidents in this period.</div>';}
+          keys.forEach(function(k){var r=document.createElement("div");r.className="sbrow";
+            r.innerHTML='<div>'+esc(k)+'</div><div class="sbn">'+othersBreak[k]+'</div>';sb.appendChild(r);});
+          nb.appendChild(sb);
+        }
+      }
+    });
+    if(!data.length){nb.insertAdjacentHTML("afterbegin",'<div class="empty-note">No incidents in this period.</div>');}
+
+    renderTrend();
+    renderTimeCols(data);
+  }
+
+  // trend watch: compare this window vs the previous equal window, flag rising categories
+  function renderTrend(){
+    var box=$("trendBox");box.innerHTML="";
+    var curLo,curHi,span,period,anchor;
+    if(customActive()){
+      curHi=dashTo!=null?dashTo:Date.now();
+      curLo=dashFrom!=null?dashFrom:(curHi-30*86400000);
+      span=Math.max(curHi-curLo,86400000);
+      period="window";
+    }else{
+      curHi=Date.now();span=rangeDays*86400000;curLo=curHi-span;
+      period=rangeDays===7?"week":rangeDays===30?"month":"year";
+    }
+    function countIn(lo,hi){
+      var c={};DASH_CATS.forEach(function(k){c[k]=0;});
+      store.forEach(function(i){var t=new Date(i.dtg).getTime();
+        if(t>=lo&&t<hi){var k=catOfInc(i);if(c[k]==null)k="Others";c[k]++;}});
+      return c;
+    }
+    var cur=countIn(curLo,curHi), prev=countIn(curLo-span,curLo);
+    var rows=DASH_CATS.map(function(k){return {k:k,cur:cur[k],prev:prev[k],d:cur[k]-prev[k]};});
+    var up=rows.filter(function(r){return r.d>0;}).sort(function(a,b){return b.d-a.d;});
+    var dn=rows.filter(function(r){return r.d<0;}).sort(function(a,b){return a.d-b.d;});
+
+    if(up.length){
+      var head=document.createElement("div");head.className="ti-tx";head.style.marginBottom="4px";
+      head.innerHTML="<b>Look out for these — rising vs the previous "+period+":</b>";
+      box.appendChild(head);
+      up.slice(0,4).forEach(function(r){
+        var pct=r.prev?Math.round(r.d/r.prev*100)+"%":"new";
+        var it=document.createElement("div");it.className="trend-item";
+        it.innerHTML='<div class="ti-ar up">▲</div><div class="ti-tx"><b>'+esc(r.k)+'</b> — '+r.prev+' → '+r.cur+' ('+pct+'). Monitor closely and ensure timely updates on these reports.</div>';
+        box.appendChild(it);
+      });
+    }else{
+      var none=document.createElement("div");none.className="ti-tx";
+      none.innerHTML="No categories trending upward vs the previous "+period+".";
+      box.appendChild(none);
+    }
+    if(dn.length){
+      var it2=document.createElement("div");it2.className="trend-item";
+      it2.innerHTML='<div class="ti-ar dn">▼</div><div class="ti-tx">Easing: '+dn.slice(0,3).map(function(r){return "<b>"+esc(r.k)+"</b>";}).join(", ")+'.</div>';
+      box.appendChild(it2);
+    }
+  }
+
+  function renderTimeCols(data){
+    var buckets=[],labels=[];
+    var now=new Date();
+    if(rangeDays===7){
+      for(var i=6;i>=0;i--){var d=new Date(now);d.setDate(d.getDate()-i);buckets.push({key:d.toDateString(),c:0});labels.push(["Su","Mo","Tu","We","Th","Fr","Sa"][d.getDay()]);}
+      data.forEach(function(x){var k=new Date(x.dtg).toDateString();var b=buckets.find(function(z){return z.key===k;});if(b)b.c++;});
+    }else if(rangeDays===30){
+      for(var w=4;w>=0;w--){buckets.push({lo:w*7,hi:w*7+6,c:0});labels.push(w===0?"This wk":w+"w ago");}
+      data.forEach(function(x){var ago=Math.floor((Date.now()-new Date(x.dtg).getTime())/86400000);
+        var b=buckets.find(function(z){return ago>=z.lo&&ago<=z.hi;});if(b)b.c++;});
+    }else{
+      var M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      for(var m=11;m>=0;m--){var d2=new Date(now.getFullYear(),now.getMonth()-m,1);buckets.push({key:d2.getFullYear()+"-"+d2.getMonth(),c:0});labels.push(M[d2.getMonth()]);}
+      data.forEach(function(x){var dd=new Date(x.dtg);var k=dd.getFullYear()+"-"+dd.getMonth();var b=buckets.find(function(z){return z.key===k;});if(b)b.c++;});
+    }
+    var mx=buckets.reduce(function(m,b){return Math.max(m,b.c);},0)||1;
+    var tc=$("timeCols");tc.innerHTML="";
+    buckets.forEach(function(b,idx){
+      var col=document.createElement("div");col.className="col";
+      col.innerHTML='<div class="cval">'+(b.c||"")+'</div><div class="cbar" style="height:'+(b.c/mx*110+2)+'px"></div><div class="clab">'+labels[idx]+'</div>';
+      tc.appendChild(col);
+    });
+  }
+
+  /* ============================================================
+     MANAGEMENT
+     ============================================================ */
+  var mStatusFilter="all", mCatFilter="all", mDateFrom=null, mDateTo=null;
+  $("mFilter").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    mStatusFilter=b.getAttribute("data-s");
+    Array.prototype.forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b);});
+    renderManage();
+  });
+  $("mCatFilter").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    mCatFilter=b.getAttribute("data-c");
+    Array.prototype.forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b);});
+    renderManage();
+  });
+  function readDateFilter(){
+    mDateFrom=$("mDateFrom").value?new Date($("mDateFrom").value).getTime():null;
+    mDateTo=$("mDateTo").value?new Date($("mDateTo").value).getTime():null;
+    renderManage();
+  }
+  $("mDateFrom").addEventListener("change",readDateFilter);
+  $("mDateTo").addEventListener("change",readDateFilter);
+  $("mDateClear").addEventListener("click",function(){$("mDateFrom").value="";$("mDateTo").value="";mDateFrom=mDateTo=null;renderManage();});
+
+  function renderManage(){
+    var list=$("incList");list.innerHTML="";
+    var rows=store.slice().sort(function(a,b){return new Date(b.dtg)-new Date(a.dtg);})
+      .filter(function(i){return mStatusFilter==="all"||i.status===mStatusFilter;})
+      .filter(function(i){return mCatFilter==="all"||i.cat===mCatFilter;})
+      .filter(function(i){
+        if(mDateFrom==null&&mDateTo==null)return true;
+        var t=new Date(i.reportedDtg||i.dtg).getTime();
+        if(mDateFrom!=null&&t<mDateFrom)return false;
+        if(mDateTo!=null&&t>mDateTo)return false;
+        return true;
+      });
+    if(!rows.length){list.innerHTML='<div class="empty-note">No incidents match this filter.</div>';return;}
+    rows.forEach(function(inc){list.appendChild(incCard(inc));});
+  }
+
+  function fmtDtg(iso){var d=new Date(iso);if(isNaN(d))return "";var M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return pad(d.getDate())+" "+M[d.getMonth()]+" "+d.getFullYear()+", "+pad(d.getHours())+":"+pad(d.getMinutes())+"h";}
+
+  function incCard(inc){
+    var wrap=document.createElement("div");wrap.className="inc";
+    var nUpd=(inc.updates?inc.updates.length:(inc.followups?inc.followups.length:0));
+    var fuTxt=nUpd?(nUpd+" update"+(nUpd>1?"s":"")):"no updates";
+    var row=document.createElement("div");row.className="inc-row";
+    row.innerHTML='<div class="dtg">'+fmtDtg(inc.dtg)+'</div>'
+      +'<div class="ttl">'+esc((inc.nature||"Incident").replace(/\s*\(.*\)/,""))+'<small>'+esc(inc.loc||"")+(inc.who?(" · "+esc(inc.who)):"")+'</small></div>'
+      +'<div class="cat-chip" style="color:'+CAT_COLOR[inc.cat]+'">'+inc.cat+'</div>'
+      +'<div class="stat-chip">'+inc.status+' · '+fuTxt+'</div>';
+    var detail=document.createElement("div");detail.className="inc-detail";
+    detail.appendChild(buildDetail(inc));
+    row.addEventListener("click",function(){detail.classList.toggle("on");});
+    wrap.appendChild(row);wrap.appendChild(detail);
+    return wrap;
+  }
+
+  function buildDetail(inc){
+    var d=document.createElement("div");
+
+    // Write-up — editable
+    var wu=document.createElement("div");d.appendChild(wu);
+    function drawWriteup(editing){
+      wu.innerHTML="";
+      var wh=document.createElement("div");wh.className="wu-head";
+      var h=document.createElement("h4");h.textContent="Write-up";h.style.margin="0";wh.appendChild(h);
+      if(!editing){
+        var eb=document.createElement("button");eb.type="button";eb.className="mini-edit";eb.textContent="Edit";
+        eb.addEventListener("click",function(){drawWriteup(true);});
+        wh.appendChild(eb);wu.appendChild(wh);
+        var p=document.createElement("div");p.className="writeup";p.style.marginTop="8px";p.textContent=inc.summary||"(no narrative recorded)";wu.appendChild(p);
+      }else{
+        wu.appendChild(wh);
+        var ta=document.createElement("textarea");ta.className="wu-edit";ta.value=inc.summary||"";wu.appendChild(ta);
+        var bar=document.createElement("div");bar.className="edit-bar";
+        var save=document.createElement("button");save.type="button";save.className="mini-save";save.textContent="Save";
+        var cancel=document.createElement("button");cancel.type="button";cancel.className="mini-cancel";cancel.textContent="Cancel";
+        save.addEventListener("click",function(){inc.summary=ta.value.trim();saveStore();drawWriteup(false);});
+        cancel.addEventListener("click",function(){drawWriteup(false);});
+        bar.appendChild(save);bar.appendChild(cancel);wu.appendChild(bar);
+        ta.focus();
+      }
+    }
+    drawWriteup(false);
+
+    if(!inc.updates)inc.updates=inc.followups?inc.followups.map(function(f){return {t:f.t,ts:inc.dtg};}):[];
+
+    var fh=document.createElement("h4");fh.textContent="Updates";d.appendChild(fh);
+    var fuWrap=document.createElement("div");
+    function fmtTs(iso){var dt=new Date(iso);if(isNaN(dt))return "";
+      return fmtDtg(iso);}
+    function drawFu(){
+      fuWrap.innerHTML="";
+      inc.updates.forEach(function(u,idx){
+        var item=document.createElement("div");item.className="upd";
+        var head=document.createElement("div");head.className="upd-head";
+        var left=document.createElement("span");
+        left.innerHTML='<span class="upd-n">Update '+(idx+1)+'</span> <span class="upd-ts">'+esc(fmtTs(u.ts))+'</span>';
+        var eb=document.createElement("button");eb.type="button";eb.className="mini-edit";eb.textContent="Edit";
+        head.appendChild(left);head.appendChild(eb);
+        var body=document.createElement("div");body.className="upd-tx";body.textContent=u.t;
+        item.appendChild(head);item.appendChild(body);fuWrap.appendChild(item);
+        eb.addEventListener("click",function(){
+          var ta=document.createElement("textarea");ta.className="wu-edit";ta.value=u.t;
+          var bar=document.createElement("div");bar.className="edit-bar";
+          var save=document.createElement("button");save.type="button";save.className="mini-save";save.textContent="Save";
+          var cancel=document.createElement("button");cancel.type="button";cancel.className="mini-cancel";cancel.textContent="Cancel";
+          save.addEventListener("click",function(){var v=ta.value.trim();if(v){u.t=v;saveStore();}drawFu();});
+          cancel.addEventListener("click",function(){drawFu();});
+          bar.appendChild(save);bar.appendChild(cancel);
+          body.style.display="none";eb.style.display="none";item.appendChild(ta);item.appendChild(bar);ta.focus();
+        });
+      });
+      if(!inc.updates.length){var e=document.createElement("div");e.className="empty-note";e.textContent="No updates yet.";fuWrap.appendChild(e);}
+    }
+    drawFu();
+    d.appendChild(fuWrap);
+    var add=document.createElement("div");add.className="fu-add";
+    var inp=document.createElement("input");inp.type="text";inp.placeholder="Add an update…";
+    var btn=document.createElement("button");btn.type="button";btn.textContent="Add update";
+    function addFu(){var v=inp.value.trim();if(!v)return;inc.updates.push({t:v,ts:new Date().toISOString()});inp.value="";saveStore();drawFu();renderManage();}
+    btn.addEventListener("click",addFu);
+    inp.addEventListener("keydown",function(e){if(e.key==="Enter")addFu();});
+    add.appendChild(inp);add.appendChild(btn);d.appendChild(add);
+
+    var meta=document.createElement("div");meta.className="inc-meta";
+    var lab=document.createElement("span");lab.className="lab";lab.textContent="Status";
+    var sel=document.createElement("select");
+    ["Open","Closed"].forEach(function(s){var o=document.createElement("option");o.textContent=s;if(s===inc.status)o.selected=true;sel.appendChild(o);});
+    sel.addEventListener("change",function(){inc.status=sel.value;saveStore();renderManage();});
+    meta.appendChild(lab);meta.appendChild(sel);
+
+    var del=document.createElement("button");del.type="button";del.className="del-btn";del.textContent="Delete incident";
+    var confirming=false;
+    del.addEventListener("click",function(ev){
+      ev.stopPropagation();
+      if(!confirming){confirming=true;del.textContent="Confirm delete?";del.classList.add("confirm");
+        setTimeout(function(){if(confirming){confirming=false;del.textContent="Delete incident";del.classList.remove("confirm");}},3500);
+        return;}
+      store=store.filter(function(x){return x.id!==inc.id;});
+      saveStore();renderManage();renderDash();
+      toast("Incident deleted.");
+    });
+    meta.appendChild(del);
+    d.appendChild(meta);
+    return d;
+  }
+
+  function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+  /* ============================================================
+     SUBMIT / LOG INCIDENT
+     ============================================================ */
+  function toast(msg){var t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2600);}
+
+  $("submitBtn").addEventListener("click",function(){
+    if(!$("nature").value){toast("Select an incident type before logging.");showTab("file");return;}
+    var cat=$("vCat").textContent;
+    var nar=buildNarrative();
+    var summary=[nar.heading].concat(nar.paras).join("\n\n");
+    var involved=readInvolved().map(function(p){return [p.rank,nameCase(p.name)].filter(Boolean).join(" ");}).filter(Boolean).join(", ");
+    var heatFlag=(natureText()==="Hospitalisation" && /heat/i.test(detVal("heat")||""));
+    var inc={
+      id:"I"+Date.now(),
+      dtg:($("dtg").value?new Date($("dtg").value).toISOString():new Date().toISOString()),
+      reportedDtg:($("reportedDtg").value?new Date($("reportedDtg").value).toISOString():new Date().toISOString()),
+      nature:natureText(),
+      heat:heatFlag,
+      dashCat:dashCatOf(natureText(),heatFlag),
+      cat:cat,
+      caseNo:$("caseNo").value.trim(),
+      heading:nar.heading,
+      status:"Open",
+      loc:$("where").value.trim(),
+      who:involved,
+      summary:summary,
+      recs:recommendations(cat),
+      updates:[]
+    };
+    store.push(inc);saveStore();
+    toast("Incident logged — "+cat+". View it under Incident Management.");
+    renderDash();renderManage();
+  });
+
+  /* ---- boot the store ---- */
+  loadStore();
+
+  // init
+  $("whoList").appendChild(whoRow());
+  seedDtg();
+  render();
+})();
+
+</script>
+</body>
+</html>
