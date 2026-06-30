@@ -173,6 +173,9 @@
   .paper{background:var(--paper);color:var(--paper-ink);border-radius:4px;padding:24px 26px 28px;
     font-family:var(--mono);font-size:12.5px;line-height:1.65;box-shadow:0 10px 30px -12px rgba(0,0,0,.6)}
   .paper.editing{outline:2px dashed var(--amber,#d9a531);outline-offset:3px}
+  .paper.bcast{border:1px solid rgba(90,143,107,.4)}
+  .paper.bcast .pclass{border-bottom-color:#5a8f6b;color:#3f6f4f}
+  .paper.bcast .bcast-note{margin-top:16px;border-top:1px dashed rgba(0,0,0,.15);padding-top:10px;font-size:10.5px;color:#6b7a6e;font-style:italic}
   .paper.editing #irHeading,.paper.editing #nBody{background:rgba(217,165,49,.08);border-radius:3px}
   .paper .pclass{text-align:center;font-weight:600;letter-spacing:.26em;font-size:11px;border-bottom:2px solid var(--paper-ink);padding-bottom:8px;margin-bottom:14px}
   .paper .pmeta{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;margin-bottom:14px}
@@ -647,6 +650,19 @@
         <div class="pfoot" id="nFoot">REPORTING PERSONNEL: —</div>
       </div>
 
+      <div class="doc-head" style="margin-top:26px">
+        <h2>Broadcast message <span class="opt" style="font-weight:400">— sanitised; safe to disseminate</span></h2>
+        <div class="out-actions">
+          <button class="copy-btn" id="copyBcastBtn" type="button">Copy broadcast</button>
+        </div>
+      </div>
+      <div class="paper prose bcast" id="broadcastPaper">
+        <div class="pclass" id="bClass">UNCLASSIFIED — FOR BROADCAST</div>
+        <div id="bHeading">—</div>
+        <div id="bBody"></div>
+        <div class="bcast-note">Personnel identifiers (rank, name, unit, contact) removed and replaced with “service personnel”. Review before sending.</div>
+      </div>
+
       <div class="refbox" id="refBox">
         <button class="ref-toggle" id="refToggle" type="button"><span id="refLabel">Matched reference template</span><span id="refChevron">▾</span></button>
         <div class="ref-body" id="refBody"></div>
@@ -715,7 +731,8 @@
     if(!u||!p){$("loginErr").textContent="Enter a username and password to continue.";return;}
     $("loginErr").textContent="";$("sessionUser").textContent=u;
     $("loginScreen").classList.add("hidden");$("appShell").classList.remove("hidden");
-    showTab("overview");renderDash();renderManage();
+    showTab("overview");
+    loadStore(function(){renderDash();renderManage();});
   }
   function doLogout(){
     $("appShell").classList.add("hidden");$("loginScreen").classList.remove("hidden");
@@ -1241,7 +1258,54 @@
     var seenEG={};
     paras=paras.map(function(p){return egExpand(p,seenEG);});
 
-    return {heading:egExpand(heading,seenEG), paras:paras,
+    /* ---- sanitised broadcast version (no personal identifiers) ---- */
+    function bcastNoun(cap){
+      var svc=involvedArr.length?involvedArr[0].svc:"";
+      var n=/^Civilian/i.test(svc)?"civilian personnel":(svc==="DXO"?"personnel":"service personnel");
+      return cap?n.replace(/(^|\s)\w/g,function(m){return m.toUpperCase();}):n;
+    }
+    // collect identifiers to remove from any free text (names, rank+name, full descriptor, POC)
+    function idForms(o){
+      var f=[];
+      if(o.name){var nm=nameCase(o.name);f.push(personStr(o));
+        if(o.rank)f.push(up(o.rank)+" "+nm);
+        f.push(nm);
+        nm.split(/\s+/).forEach(function(w){if(w.length>2)f.push(w);});}
+      return f;
+    }
+    var idList=[];
+    involvedArr.forEach(function(o){idList=idList.concat(idForms(o));});
+    var pocO={svc:$("pocSvc").value.trim(),rank:$("pocRank").value.trim(),name:$("pocName").value.trim(),unit:$("pocUnit").value.trim()};
+    if(noRankSvc(pocO.svc))pocO.rank="";
+    idList=idList.concat(idForms(pocO));
+    if(pocPhone)idList.push(pocPhone);
+    idList=idList.filter(function(s){return s&&s.trim();}).sort(function(a,b){return b.length-a.length;});
+    function scrub(t){
+      idList.forEach(function(s){
+        var re=new RegExp("\\b"+s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g");
+        t=t.replace(re,"service personnel");
+      });
+      // collapse accidental doublings
+      return t.replace(/service personnel(\s*\(?service personnel\)?)+/gi,"service personnel")
+              .replace(/\(\s*\)/g,"").replace(/\s{2,}/g," ").trim();
+    }
+
+    var bHeading=caseRef(shownCat)+" "+(prefix?(prefix+" "):"")+(q?(q+" "):"")+bcastNoun(true)+" "+titleOfIncident;
+    var bCore=bcastNoun(false)+" "+(what||"[XXXX – what happened]")+(where?(" at "+where):"")
+      +(how?(", "+lcFirst(stripDot(how))):"");
+    var bSummary=("On "+dtgP+", "+unit+" informed GSOC that "+bCore).replace(/[.\s]+$/,"")+".";
+    if(why)bSummary+=" This was attributed to "+lcFirst(stripDot(why))+".";
+    var bStatusBits=[curStatus?sent(curStatus):"[XXXX – current status of the incident]."];
+    if(nok==="Yes")bStatusBits.push("NOK was informed.");
+    else if(nok==="No")bStatusBits.push("NOK has not been informed.");
+    if(pocP.has||pocPhone)bStatusBits.push("A point of contact has been identified.");
+    var bParas=[bSummary, bStatusBits.join(" ")];
+    if(accountBody) bParas.push("According to the unit, "+leadIn(splitSentences(account).map(sent).join(" "))+".");
+    if(note) bParas.push("Special note: "+sent(note));
+    bParas=bParas.map(function(p){return egExpand(scrub(p),{});});
+    var broadcast={heading:egExpand(scrub(bHeading),{}), paras:bParas};
+
+    return {heading:egExpand(heading,seenEG), paras:paras, broadcast:broadcast,
             match:matchTemplate(),
             analysis:{cat:result.cat, cite:result.why, shownCat:shownCat}};
   }
@@ -1315,6 +1379,12 @@
       $("nFoot").textContent=foot;
     }
 
+    // sanitised broadcast message
+    $("bClass").textContent=classMark+" — FOR BROADCAST";
+    $("bHeading").textContent=nar.broadcast.heading;
+    var bb=$("bBody");bb.innerHTML="";
+    nar.broadcast.paras.forEach(function(t){if(t){var p=document.createElement("p");p.textContent=t;bb.appendChild(p);}});
+
     // matched reference template from the SMS library
     var rb=$("refBody"), rl=$("refLabel");
     if(nar.match){
@@ -1362,16 +1432,55 @@
   });
   function fallback(txt){var ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);}
 
+  function broadcastPlain(){
+    var out=[$("bClass").textContent,"",$("bHeading").textContent,""];
+    $("bBody").querySelectorAll("p").forEach(function(p){out.push(p.textContent);out.push("");});
+    return out.join("\n").replace(/\n{3,}/g,"\n\n").trim();
+  }
+  $("copyBcastBtn").addEventListener("click",function(){
+    var btn=this,txt=broadcastPlain();
+    var done=function(){btn.textContent="Copied ✓";btn.classList.add("done");setTimeout(function(){btn.textContent="Copy broadcast";btn.classList.remove("done");},1600);};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done).catch(function(){fallback(txt);done();});
+    else{fallback(txt);done();}
+  });
+
   /* ============================================================
-     DATA STORE  (browser-local; falls back to memory in sandbox)
+     DATA STORE
+     Set API_BASE to your deployed Cloudflare Worker URL to persist
+     incidents in D1. Leave it "" to use browser-local storage.
+     e.g. var API_BASE = "https://gsoc-ims.<your-subdomain>.workers.dev";
      ============================================================ */
+  var API_BASE = "";                 // <-- paste your Worker URL here
   var STORE_KEY="ir_incidents_v1";
   var store=[];
-  function loadStore(){
-    try{var raw=window.localStorage.getItem(STORE_KEY);if(raw){store=JSON.parse(raw);return;}}catch(e){}
-    store=seedData();saveStore();
+  function apiOn(){return !!API_BASE;}
+  function uid(p){return (p||"u")+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);}
+
+  function apiFetch(path,opts){
+    return fetch(API_BASE.replace(/\/$/,"")+path,Object.assign({headers:{"Content-Type":"application/json"}},opts||{}));
   }
-  function saveStore(){try{window.localStorage.setItem(STORE_KEY,JSON.stringify(store));}catch(e){}}
+  // mutation helpers — call D1 when API_BASE is set, else just persist locally
+  function dbCreate(inc){ if(apiOn())apiFetch("/api/incidents",{method:"POST",body:JSON.stringify(inc)}).catch(dbErr); else saveLocal(); }
+  function dbPatch(id,fields){ if(apiOn())apiFetch("/api/incidents/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify(fields)}).catch(dbErr); else saveLocal(); }
+  function dbDelete(id){ if(apiOn())apiFetch("/api/incidents/"+encodeURIComponent(id),{method:"DELETE"}).catch(dbErr); else saveLocal(); }
+  function dbAddUpdate(id,u){ if(apiOn())apiFetch("/api/incidents/"+encodeURIComponent(id)+"/updates",{method:"POST",body:JSON.stringify(u)}).catch(dbErr); else saveLocal(); }
+  function dbPatchUpdate(id,updId,text){ if(apiOn())apiFetch("/api/incidents/"+encodeURIComponent(id)+"/updates/"+encodeURIComponent(updId),{method:"PATCH",body:JSON.stringify({t:text})}).catch(dbErr); else saveLocal(); }
+  function dbErr(e){ try{toast("Cloud sync error — check Worker/D1.");}catch(_){}}
+
+  function saveLocal(){try{window.localStorage.setItem(STORE_KEY,JSON.stringify(store));}catch(e){}}
+  function saveStore(){saveLocal();}   // legacy callers; harmless when apiOn
+
+  function loadStore(cb){
+    if(apiOn()){
+      apiFetch("/api/incidents").then(function(r){return r.json();}).then(function(rows){
+        store=Array.isArray(rows)?rows:[];
+        if(cb)cb();
+      }).catch(function(){store=[];if(cb)cb();});
+      return;
+    }
+    try{var raw=window.localStorage.getItem(STORE_KEY);if(raw){store=JSON.parse(raw);if(cb)cb();return;}}catch(e){}
+    store=seedData();saveLocal();if(cb)cb();
+  }
 
   function daysAgo(n,h){var d=new Date();d.setDate(d.getDate()-n);if(h!=null)d.setHours(h,0,0,0);return d.toISOString();}
   function seedData(){
@@ -1699,7 +1808,7 @@
         var bar=document.createElement("div");bar.className="edit-bar";
         var save=document.createElement("button");save.type="button";save.className="mini-save";save.textContent="Save";
         var cancel=document.createElement("button");cancel.type="button";cancel.className="mini-cancel";cancel.textContent="Cancel";
-        save.addEventListener("click",function(){inc.summary=ta.value.trim();saveStore();drawWriteup(false);});
+        save.addEventListener("click",function(){inc.summary=ta.value.trim();saveLocal();dbPatch(inc.id,{summary:inc.summary});drawWriteup(false);});
         cancel.addEventListener("click",function(){drawWriteup(false);});
         bar.appendChild(save);bar.appendChild(cancel);wu.appendChild(bar);
         ta.focus();
@@ -1729,7 +1838,7 @@
           var bar=document.createElement("div");bar.className="edit-bar";
           var save=document.createElement("button");save.type="button";save.className="mini-save";save.textContent="Save";
           var cancel=document.createElement("button");cancel.type="button";cancel.className="mini-cancel";cancel.textContent="Cancel";
-          save.addEventListener("click",function(){var v=ta.value.trim();if(v){u.t=v;saveStore();}drawFu();});
+          save.addEventListener("click",function(){var v=ta.value.trim();if(v){if(!u.id)u.id=uid("u");u.t=v;saveLocal();dbPatchUpdate(inc.id,u.id,v);}drawFu();});
           cancel.addEventListener("click",function(){drawFu();});
           bar.appendChild(save);bar.appendChild(cancel);
           body.style.display="none";eb.style.display="none";item.appendChild(ta);item.appendChild(bar);ta.focus();
@@ -1742,7 +1851,7 @@
     var add=document.createElement("div");add.className="fu-add";
     var inp=document.createElement("input");inp.type="text";inp.placeholder="Add an update…";
     var btn=document.createElement("button");btn.type="button";btn.textContent="Add update";
-    function addFu(){var v=inp.value.trim();if(!v)return;inc.updates.push({t:v,ts:new Date().toISOString()});inp.value="";saveStore();drawFu();renderManage();}
+    function addFu(){var v=inp.value.trim();if(!v)return;var u={id:uid("u"),t:v,ts:new Date().toISOString()};inc.updates.push(u);inp.value="";saveLocal();dbAddUpdate(inc.id,u);drawFu();renderManage();}
     btn.addEventListener("click",addFu);
     inp.addEventListener("keydown",function(e){if(e.key==="Enter")addFu();});
     add.appendChild(inp);add.appendChild(btn);d.appendChild(add);
@@ -1751,7 +1860,7 @@
     var lab=document.createElement("span");lab.className="lab";lab.textContent="Status";
     var sel=document.createElement("select");
     ["Open","Closed"].forEach(function(s){var o=document.createElement("option");o.textContent=s;if(s===inc.status)o.selected=true;sel.appendChild(o);});
-    sel.addEventListener("change",function(){inc.status=sel.value;saveStore();renderManage();});
+    sel.addEventListener("change",function(){inc.status=sel.value;saveLocal();dbPatch(inc.id,{status:inc.status});renderManage();});
     meta.appendChild(lab);meta.appendChild(sel);
 
     var del=document.createElement("button");del.type="button";del.className="del-btn";del.textContent="Delete incident";
@@ -1762,7 +1871,7 @@
         setTimeout(function(){if(confirming){confirming=false;del.textContent="Delete incident";del.classList.remove("confirm");}},3500);
         return;}
       store=store.filter(function(x){return x.id!==inc.id;});
-      saveStore();renderManage();renderDash();
+      saveLocal();dbDelete(inc.id);renderManage();renderDash();
       toast("Incident deleted.");
     });
     meta.appendChild(del);
@@ -1801,13 +1910,13 @@
       recs:recommendations(cat),
       updates:[]
     };
-    store.push(inc);saveStore();
+    store.push(inc);saveLocal();dbCreate(inc);
     toast("Incident logged — "+cat+". View it under Incident Management.");
     renderDash();renderManage();
   });
 
   /* ---- boot the store ---- */
-  loadStore();
+  loadStore(function(){renderDash();renderManage();});
 
   // init
   $("whoList").appendChild(whoRow());
